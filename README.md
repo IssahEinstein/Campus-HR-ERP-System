@@ -1,3 +1,268 @@
+📘 Campus Job ERP — Backend (FastAPI + Prisma + Supabase)
+
+A full‑stack HR + Scheduling + Payroll system designed for university student employment. This backend powers authentication, supervisor workflows, worker operations, scheduling, payroll, and performance feedback using FastAPI, Prisma, and Supabase PostgreSQL.
+
+---
+
+🚀 Features
+
+🔐 Authentication & Security
+
+• JWT‑based auth (30‑min access tokens, 7‑day refresh tokens)
+• HttpOnly refresh cookies for secure session management
+• Device‑based session tracking
+• Role‑based authorization (Supervisor vs Worker)
+
+
+👥 HR & User Management
+
+• Supervisor onboarding
+• Worker pre‑registration (invitation system)
+• Email‑based signup validation
+• Department + role assignments
+
+
+📅 Scheduling & Shifts
+
+• Supervisor shift creation and assignment
+• Worker shift views (upcoming, completed)
+• Check‑in / check‑out tracking
+• Conflict‑free scheduling logic
+
+
+📝 Requests & Approvals
+
+• Time‑off requests
+• Shift‑swap requests
+• Supervisor approval workflow
+• Notes + audit trail
+
+
+💵 Payroll (Mocked)
+
+• Hour tracking
+• Pay stub generation
+• Tax + deduction fields
+• PDF export endpoint (optional)
+
+
+⭐ Performance & Feedback
+
+• Supervisor feedback submissions
+• Worker feedback history
+
+
+---
+
+🏗️ Tech Stack
+
+Layer	Technology	
+Backend Framework	FastAPI	
+ORM	Prisma (prisma-client-py)	
+Database	Supabase PostgreSQL	
+Auth	JWT + HttpOnly Cookies	
+Testing	Postman	
+Frontend	React (separate repo)	
+
+
+---
+
+📂 Project Structure
+
+backend/
+├── app/
+│   ├── api/
+│   ├── auth/
+│   ├── models/
+│   ├── schemas/
+│   ├── services/
+│   ├── utils/
+│   └── main.py
+├── prisma/
+│   └── schema.prisma
+├── .env
+├── requirements.txt
+└── README.md
+
+
+---
+
+🗄️ Database Schema (Prisma)
+
+The system includes models for:
+
+• Supervisor
+• Worker
+• Shift
+• Request
+• Availability
+• Feedback
+• PayStub
+
+
+Each model includes timestamps, relations, and business‑logic fields (e.g., status, invitedAt, reviewedBy, etc.).
+
+---
+
+🔌 API Overview
+
+Authentication
+
+Method	Endpoint	Description	
+POST	/api/auth/supervisor/signup	Create supervisor account	
+POST	/api/auth/worker/signup	Worker signup (requires invitation)	
+POST	/api/auth/login	Login for both roles	
+POST	/api/auth/logout	Logout + invalidate refresh token	
+POST	/api/auth/refresh	Refresh access token	
+GET	/api/auth/me	Get current user	
+
+
+Supervisor
+
+• Invite workers
+• Manage workers
+• Create/edit shifts
+• Approve/deny requests
+• Submit feedback
+
+
+Worker
+
+• View shifts
+• Check in/out
+• Submit requests
+• Manage availability
+• View pay stubs
+• View feedback
+
+
+Full endpoint list is available in the Backend Integration Guide.
+
+---
+
+🧪 Testing (Postman)
+
+A full Postman collection is included with folders for:
+
+• Auth
+• Supervisor actions
+• Worker actions
+
+
+Each request includes tests for status codes and token handling.
+
+---
+
+⚙️ Environment Variables
+
+Create a .env file:
+
+DATABASE_URL=postgresql://user:password@db.supabase.co:5432/postgres
+
+JWT_SECRET=your-secret
+JWT_ACCESS_TOKEN_EXPIRE_MINUTES=30
+JWT_REFRESH_TOKEN_EXPIRE_DAYS=7
+
+ALLOWED_ORIGINS=http://localhost:3000
+
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASSWORD=your-app-password
+
+APP_NAME=Campus Job ERP
+FRONTEND_URL=http://localhost:3000
+
+
+---
+
+▶️ Running the Backend
+
+1. Install dependencies
+
+pip install -r requirements.txt
+
+
+2. Generate Prisma client
+
+prisma generate
+
+
+3. Run migrations
+
+prisma migrate deploy
+
+
+4. Start FastAPI server
+
+uvicorn app.main:app --reload
+
+
+---
+
+🔐 CORS Configuration
+
+Configured in main.py:
+
+• Allows frontend origins
+• Supports credentials
+• Allows all methods + headers
+
+
+---
+
+🤝 Contributing
+
+Branch Strategy
+
+• main — production‑ready code
+• dev — active development
+• Feature branches: feature/<name>
+
+
+Pull Requests
+
+• Required for all merges
+• Must pass linting + tests
+• Must be reviewed by repo owner
+
+
+Adding Collaborators
+
+• Repo → Settings → Collaborators
+• Add GitHub usernames
+• Assign Write access
+• PR review required before merge
+
+
+---
+
+📄 License
+
+MIT License
+
+---
+
+🧭 Roadmap
+
+• Admin dashboard
+• Analytics + reporting
+• Mobile worker check‑in
+• Supervisor scheduling calendar
+• Payroll PDF generation
+
+
+---
+
+🙋‍♂️ Maintainers
+
+• Issah
+• Berny
+• Stephen
+
+
+
+------------------------------------------------------
 Campus Job ERP — Backend Service
 
 The Campus Job ERP Backend is a service‑oriented system that provides authentication, workforce management, scheduling, payroll modeling, and performance workflows for university student employment programs. The service is implemented using FastAPI, Prisma, and Supabase PostgreSQL, and is designed for reliability, security, and integration with a React‑based frontend.
