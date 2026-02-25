@@ -2,17 +2,14 @@
 // Backend: FastAPI + prisma-client-py
 // Database: Supabase PostgreSQL
 
-
 generator client {
   provider = "prisma-client-py"
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
-        
 
 // ============================================================================
 // ENUMS
