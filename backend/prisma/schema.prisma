@@ -1,0 +1,422 @@
+// Campus Job ERP — Prisma Schema (production-correct)
+// Backend: FastAPI + prisma-client-py
+// Database: Supabase PostgreSQL
+
+generator client {
+  provider = "prisma-client-py"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// ENUMS
+// ============================================================================
+
+enum UserRole {
+  ADMIN
+  SUPERVISOR
+  WORKER
+}
+
+enum WorkerStatus {
+  INVITED
+  ACTIVE
+  INACTIVE
+  ON_LEAVE
+}
+
+enum ShiftStatus {
+  SCHEDULED
+  CANCELLED
+  COMPLETED
+}
+
+enum AssignmentStatus {
+  ASSIGNED
+  ACCEPTED
+  DECLINED
+  COMPLETED
+}
+
+enum RequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum RequestType {
+  TIME_OFF
+  SHIFT_SWAP
+}
+
+enum PayStubStatus {
+  GENERATED
+  APPROVED
+  PAID
+}
+
+// ============================================================================
+// AUTHENTICATION & SESSIONS
+// ============================================================================
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String
+  firstName    String
+  lastName     String
+  role         UserRole
+
+  supervisorProfile Supervisor?
+  workerProfile     Worker?
+  adminProfile      Admin?
+  sessions          Session[]
+
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([email])
+  @@index([role])
+}
+
+model Session {
+  id               String   @id @default(cuid())
+  userId           String
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deviceId         String
+  refreshTokenHash String
+  expiresAt        DateTime
+  revokedAt        DateTime?
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([userId])
+  @@index([deviceId])
+  @@unique([userId, deviceId])
+}
+
+// ============================================================================
+// ORGANIZATION / DEPARTMENTS + ROLE PROFILES
+// ============================================================================
+
+model Department {
+  id   String @id @default(cuid())
+  name String @unique
+
+  adminId      String? // Admin who created/manages this department
+  admin        Admin?  @relation(fields: [adminId], references: [id])
+
+  supervisors Supervisor[]
+  workers     Worker[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([name])
+  @@index([adminId])
+}
+
+/// Admin profile - represents a system-level administrator who can:
+/// - Create and manage departments
+/// - Create supervisor accounts
+/// - Assign supervisors to departments
+/// - View all users across the system
+/// - Manage system-wide access control
+/// - Oversee payroll summaries
+/// One admin per User record (one-to-one relationship)
+model Admin {
+  id           String     @id @default(cuid())
+  userId       String     @unique // Foreign key to User (one admin per user)
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  adminId      String     @unique // 800 number or admin identifier (human-readable ID)
+
+  // Departments managed by this admin
+  departments  Department[]
+  
+  // Supervisors created by this admin
+  createdSupervisors Supervisor[] @relation("CreatedBySupervisor")
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Supervisor {
+  id           String     @id @default(cuid())
+  userId       String     @unique
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  departmentId String
+  department   Department @relation(fields: [departmentId], references: [id])
+  supervisorId String     @unique // 800 number or supervisor identifier (human-readable ID)
+
+  // Admin who created this supervisor
+  createdByAdminId String?
+  createdByAdmin   Admin?  @relation("CreatedBySupervisor", fields: [createdByAdminId], references: [id])
+
+  shifts           Shift[]
+  assignedShifts   ShiftAssignment[] @relation("AssignedBySupervisor")
+  approvedTimeOff  TimeOffRequest[]  @relation("TimeOffApprovedBy")
+  approvedSwaps    ShiftSwapRequest[] @relation("SwapApprovedBy")
+  feedbackGiven    Feedback[] @relation("SupervisorFeedback")
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([departmentId])
+}
+
+model Worker {
+  id            String     @id @default(cuid())
+  userId        String     @unique
+  user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  departmentId  String
+  department    Department @relation(fields: [departmentId], references: [id])
+  studentId     String     @unique
+  workerId      String     @unique // 800 number or worker identifier (human-readable ID)
+  status        WorkerStatus @default(INVITED)
+
+  assignments      ShiftAssignment[]
+  checkInOuts      CheckInOut[]
+  timeOffRequests  TimeOffRequest[]
+  swapRequestsFrom ShiftSwapRequest[] @relation("SwapInitiatedBy")
+  swapRequestsTo   ShiftSwapRequest[] @relation("SwapTargetWorker")
+  availability     Availability[]
+  payStubs         PayStub[]
+  feedbackReceived Feedback[] @relation("WorkerFeedback")
+  invites          WorkerInvite[]
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([departmentId])
+  @@index([status])
+}
+
+model WorkerInvite {
+  id        String   @id @default(cuid())
+  workerId  String
+  worker    Worker   @relation(fields: [workerId], references: [id], onDelete: Cascade)
+
+  tokenHash String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([workerId])
+  @@index([expiresAt])
+}
+
+// ============================================================================
+// SCHEDULING / SHIFTS / ASSIGNMENTS
+// ============================================================================
+
+model Shift {
+  id           String     @id @default(cuid())
+  supervisorId String
+  supervisor   Supervisor @relation(fields: [supervisorId], references: [id], onDelete: Cascade)
+
+  title         String
+  description   String?
+  location      String?
+
+  startTime     DateTime
+  endTime       DateTime
+  status        ShiftStatus @default(SCHEDULED)
+  expectedHours Float?
+
+  assignments   ShiftAssignment[]
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([supervisorId])
+  @@index([startTime])
+  @@index([status])
+}
+
+model ShiftAssignment {
+  id           String           @id @default(cuid())
+  shiftId      String
+  shift        Shift            @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+
+  workerId     String
+  worker       Worker           @relation(fields: [workerId], references: [id], onDelete: Cascade)
+
+  assignedById String
+  assignedBy   Supervisor       @relation("AssignedBySupervisor", fields: [assignedById], references: [id])
+
+  status       AssignmentStatus @default(ASSIGNED)
+
+  checkInOuts  CheckInOut[]
+  
+  swappedFrom  ShiftSwapRequest[] @relation("SwapFromAssignment")
+  swappedTo    ShiftSwapRequest[] @relation("SwapToAssignment")
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([shiftId, workerId])
+  @@index([workerId])
+  @@index([status])
+  @@index([assignedById])
+}
+
+model CheckInOut {
+  id                String          @id @default(cuid())
+  workerId          String
+  worker            Worker          @relation(fields: [workerId], references: [id], onDelete: Cascade)
+
+  shiftAssignmentId String
+  shiftAssignment   ShiftAssignment @relation(fields: [shiftAssignmentId], references: [id], onDelete: Cascade)
+
+  checkedInAt       DateTime
+  checkedOutAt      DateTime?
+  hoursWorked       Float?
+  notes             String?
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([workerId])
+  @@index([shiftAssignmentId])
+  @@index([checkedInAt])
+}
+
+model Availability {
+  id        String   @id @default(cuid())
+  workerId  String
+  worker    Worker   @relation(fields: [workerId], references: [id], onDelete: Cascade)
+
+  dayOfWeek Int
+  startTime String
+  endTime   String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([workerId])
+  @@index([dayOfWeek])
+}
+
+// ============================================================================
+// REQUESTS & APPROVALS
+// ============================================================================
+
+model TimeOffRequest {
+  id            String        @id @default(cuid())
+  type          RequestType   @default(TIME_OFF)
+  status        RequestStatus @default(PENDING)
+
+  workerId      String
+  worker        Worker        @relation(fields: [workerId], references: [id], onDelete: Cascade)
+
+  reviewedById  String?
+  reviewedBy    Supervisor?   @relation("TimeOffApprovedBy", fields: [reviewedById], references: [id])
+
+  startDate     DateTime
+  endDate       DateTime
+  reason        String?
+  approvalNotes String?
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([workerId])
+  @@index([status])
+  @@index([startDate])
+  @@index([reviewedById])
+}
+
+model ShiftSwapRequest {
+  id             String        @id @default(cuid())
+  type           RequestType   @default(SHIFT_SWAP)
+  status         RequestStatus @default(PENDING)
+
+  initiatedById  String
+  initiatedBy    Worker        @relation("SwapInitiatedBy", fields: [initiatedById], references: [id], onDelete: Cascade)
+
+  targetWorkerId String
+  targetWorker   Worker        @relation("SwapTargetWorker", fields: [targetWorkerId], references: [id], onDelete: Cascade)
+
+  fromAssignmentId String?
+  fromAssignment   ShiftAssignment? @relation("SwapFromAssignment", fields: [fromAssignmentId], references: [id])
+
+  toAssignmentId   String?
+  toAssignment     ShiftAssignment? @relation("SwapToAssignment", fields: [toAssignmentId], references: [id])
+
+  reviewedById   String?
+  reviewedBy     Supervisor?   @relation("SwapApprovedBy", fields: [reviewedById], references: [id])
+
+  reason         String?
+  approvalNotes  String?
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([initiatedById])
+  @@index([targetWorkerId])
+  @@index([status])
+  @@index([reviewedById])
+}
+
+// ============================================================================
+// PAYROLL (MOCKED)
+// ============================================================================
+
+model PayStub {
+  id             String        @id @default(cuid())
+  workerId       String
+  worker         Worker        @relation(fields: [workerId], references: [id], onDelete: Cascade)
+
+  payPeriodStart DateTime
+  payPeriodEnd   DateTime
+
+  totalHours     Float
+  hourlyRate     Float
+  grossPay       Float
+
+  taxWithheld    Float @default(0)
+  deductions     Float @default(0)
+  netPay         Float
+
+  status         PayStubStatus @default(GENERATED)
+  notes          String?
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([workerId, payPeriodStart, payPeriodEnd])
+  @@index([workerId])
+  @@index([status])
+}
+
+// ============================================================================
+// PERFORMANCE & FEEDBACK
+// ============================================================================
+
+model Feedback {
+  id           String     @id @default(cuid())
+  supervisorId String
+  supervisor   Supervisor @relation("SupervisorFeedback", fields: [supervisorId], references: [id], onDelete: Cascade)
+
+  workerId     String
+  worker       Worker     @relation("WorkerFeedback", fields: [workerId], references: [id], onDelete: Cascade)
+
+  rating       Int
+  comments     String?
+  category     String?
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([supervisorId])
+  @@index([workerId])
+  @@index([createdAt])
+}
