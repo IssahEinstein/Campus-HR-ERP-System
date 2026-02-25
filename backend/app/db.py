@@ -1,12 +1,9 @@
-import asyncio
 from prisma import Prisma
 
-async def main():
-    db = Prisma()
-    await db.connect()
-    # Replace 'user' with one of your model names
-    print("Connected to Supabase!")
-    await db.disconnect()
+db = Prisma()
 
-if __name__ == "__main__":
-    asyncio.run(main())
+async def connect_db():
+    await db.connect()
+
+async def disconnect_db():
+    await db.disconnect()
