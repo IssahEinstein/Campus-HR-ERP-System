@@ -307,10 +307,18 @@ export default function CampusJobERPMVP() {
     <div className="min-h-screen bg-gray-50">
       {/* LOGIN PAGE */}
       {!isLoggedIn ? (
-        <div className="min-h-screen flex items-center justify-center p-4">
+        <div
+          className="min-h-screen flex items-center justify-center p-4"
+          style={{
+            backgroundImage: "url(/loginbg.jpg)",
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            backgroundRepeat: "no-repeat",
+          }}
+        >
           <div className="max-w-md w-full">
             {/* Logo */}
-            <div className="text-center mb-8">
+            <div className="text-center mb-8 bg-white/60 backdrop-blur-sm rounded-2xl p-6 shadow-lg">
               <h1 className="text-4xl font-light mb-2">
                 Campus
                 <span className="font-medium" style={{ color: "#00523E" }}>
@@ -718,7 +726,219 @@ export default function CampusJobERPMVP() {
                     {/* Stats Overview */}
                     <div className="flex gap-4 mb-8 overflow-x-auto pb-2">
                       <div className="bg-white rounded-xl p-6 border border-gray-200 min-w-[180px] w-[180px] h-[180px] flex-shrink-0 flex flex-col items-center justify-center text-center">
-                        <Clock size={24} className="text-gray-400 mb-3" />
+                        <svg
+                          viewBox="0 0 180 140"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="mb-1"
+                          style={{
+                            width: "140px",
+                            height: "auto",
+                            maxWidth: "100%",
+                          }}
+                        >
+                          <rect
+                            x="24"
+                            y="26"
+                            width="14"
+                            height="14"
+                            transform="rotate(-12 24 26)"
+                            fill="#16A34A"
+                          />
+                          <path
+                            d="M147 24L150 30L156 33L150 36L147 42L144 36L138 33L144 30L147 24Z"
+                            fill="#22C55E"
+                          />
+                          <circle cx="34" cy="78" r="2.5" fill="#166534" />
+                          <circle
+                            cx="148"
+                            cy="72"
+                            r="3"
+                            stroke="#166534"
+                            strokeWidth="2"
+                          />
+                          <path
+                            d="M128 46H139"
+                            stroke="#166534"
+                            strokeWidth="2.5"
+                            strokeLinecap="round"
+                          />
+                          <path
+                            d="M18 86H31"
+                            stroke="#166534"
+                            strokeWidth="2.5"
+                            strokeLinecap="round"
+                          />
+                          <path
+                            d="M78 14L70 28H79L74 40"
+                            stroke="#16A34A"
+                            strokeWidth="3"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                          <path
+                            d="M100 10L91 26H101L95 40"
+                            stroke="#15803D"
+                            strokeWidth="3"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                          <path
+                            d="M40 110H140"
+                            stroke="#111827"
+                            strokeWidth="3"
+                            strokeLinecap="round"
+                          />
+                          <path
+                            d="M52 110C56 103 61 103 66 110"
+                            stroke="#111827"
+                            strokeWidth="3"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                          <path
+                            d="M20 66H32"
+                            stroke="#111827"
+                            strokeWidth="3"
+                            strokeLinecap="round"
+                          />
+                          <path
+                            d="M16 74H26"
+                            stroke="#111827"
+                            strokeWidth="3"
+                            strokeLinecap="round"
+                          />
+                          <path
+                            d="M144 78H157"
+                            stroke="#111827"
+                            strokeWidth="3"
+                            strokeLinecap="round"
+                          />
+                          <path
+                            d="M57 30C47 31 39 38 35 48C34 51 36 54 39 54H56C59 54 61 50 59 47C57 43 58 36 63 33"
+                            fill="white"
+                            stroke="#111827"
+                            strokeWidth="3.5"
+                            strokeLinejoin="round"
+                          />
+                          <path
+                            d="M123 30C133 31 141 38 145 48C146 51 144 54 141 54H124C121 54 119 50 121 47C123 43 122 36 117 33"
+                            fill="white"
+                            stroke="#111827"
+                            strokeWidth="3.5"
+                            strokeLinejoin="round"
+                          />
+                          <path
+                            d="M51 54L60 62"
+                            stroke="#111827"
+                            strokeWidth="3.5"
+                            strokeLinecap="round"
+                          />
+                          <path
+                            d="M129 54L120 62"
+                            stroke="#111827"
+                            strokeWidth="3.5"
+                            strokeLinecap="round"
+                          />
+                          <rect
+                            x="85"
+                            y="28"
+                            width="10"
+                            height="8"
+                            rx="3"
+                            fill="white"
+                            stroke="#111827"
+                            strokeWidth="3"
+                          />
+                          <circle
+                            cx="90"
+                            cy="75"
+                            r="38"
+                            fill="white"
+                            stroke="#111827"
+                            strokeWidth="4"
+                          />
+                          <path
+                            d="M90 45V50"
+                            stroke="#111827"
+                            strokeWidth="2.5"
+                            strokeLinecap="round"
+                          />
+                          <path
+                            d="M90 100V105"
+                            stroke="#111827"
+                            strokeWidth="2.5"
+                            strokeLinecap="round"
+                          />
+                          <path
+                            d="M60 75H65"
+                            stroke="#111827"
+                            strokeWidth="2.5"
+                            strokeLinecap="round"
+                          />
+                          <path
+                            d="M115 75H120"
+                            stroke="#111827"
+                            strokeWidth="2.5"
+                            strokeLinecap="round"
+                          />
+                          <path
+                            d="M68.8 53.8L72.3 57.3"
+                            stroke="#111827"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                          />
+                          <path
+                            d="M107.7 92.7L111.2 96.2"
+                            stroke="#111827"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                          />
+                          <path
+                            d="M111.2 53.8L107.7 57.3"
+                            stroke="#111827"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                          />
+                          <path
+                            d="M72.3 92.7L68.8 96.2"
+                            stroke="#111827"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                          />
+                          <path
+                            d="M90 75L75 66"
+                            stroke="#111827"
+                            strokeWidth="4"
+                            strokeLinecap="round"
+                          />
+                          <path
+                            d="M90 75H108"
+                            stroke="#111827"
+                            strokeWidth="4"
+                            strokeLinecap="round"
+                          />
+                          <circle
+                            cx="90"
+                            cy="75"
+                            r="4.5"
+                            fill="#16A34A"
+                            stroke="#111827"
+                            strokeWidth="3"
+                          />
+                          <path
+                            d="M63 105L57 114"
+                            stroke="#111827"
+                            strokeWidth="3.5"
+                            strokeLinecap="round"
+                          />
+                          <path
+                            d="M117 105L123 114"
+                            stroke="#111827"
+                            strokeWidth="3.5"
+                            strokeLinecap="round"
+                          />
+                        </svg>
                         <div className="text-sm text-gray-600 mb-2">
                           This Week
                         </div>
@@ -731,7 +951,131 @@ export default function CampusJobERPMVP() {
                       </div>
 
                       <div className="bg-white rounded-xl p-6 border border-gray-200 min-w-[180px] w-[180px] h-[180px] flex-shrink-0 flex flex-col items-center justify-center text-center">
-                        <DollarSign size={24} className="text-gray-400 mb-3" />
+                        {/* Est. Earnings — money bag icon */}
+                        <svg
+                          viewBox="0 0 180 140"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="mb-1"
+                          style={{
+                            width: "140px",
+                            height: "auto",
+                            maxWidth: "100%",
+                          }}
+                        >
+                          {/* accent shapes */}
+                          <rect
+                            x="22"
+                            y="24"
+                            width="13"
+                            height="13"
+                            transform="rotate(-10 22 24)"
+                            fill="#16A34A"
+                          />
+                          <path
+                            d="M152 22L155 28L161 31L155 34L152 40L149 34L143 31L149 28L152 22Z"
+                            fill="#22C55E"
+                          />
+                          <circle cx="32" cy="76" r="2.5" fill="#166534" />
+                          <circle
+                            cx="150"
+                            cy="70"
+                            r="3"
+                            stroke="#166534"
+                            strokeWidth="2"
+                          />
+                          <path
+                            d="M130 44H141"
+                            stroke="#166534"
+                            strokeWidth="2.5"
+                            strokeLinecap="round"
+                          />
+                          <path
+                            d="M16 84H29"
+                            stroke="#166534"
+                            strokeWidth="2.5"
+                            strokeLinecap="round"
+                          />
+                          {/* motion lines */}
+                          <path
+                            d="M18 64H30"
+                            stroke="#111827"
+                            strokeWidth="3"
+                            strokeLinecap="round"
+                          />
+                          <path
+                            d="M14 72H24"
+                            stroke="#111827"
+                            strokeWidth="3"
+                            strokeLinecap="round"
+                          />
+                          <path
+                            d="M146 76H159"
+                            stroke="#111827"
+                            strokeWidth="3"
+                            strokeLinecap="round"
+                          />
+                          {/* ground */}
+                          <path
+                            d="M42 112H138"
+                            stroke="#111827"
+                            strokeWidth="3"
+                            strokeLinecap="round"
+                          />
+                          {/* bag body */}
+                          <path
+                            d="M72 52C60 52 46 62 46 80C46 98 58 108 90 108C122 108 134 98 134 80C134 62 120 52 108 52Z"
+                            fill="white"
+                            stroke="#111827"
+                            strokeWidth="4"
+                            strokeLinejoin="round"
+                          />
+                          {/* bag neck */}
+                          <rect
+                            x="76"
+                            y="38"
+                            width="28"
+                            height="16"
+                            rx="8"
+                            fill="white"
+                            stroke="#111827"
+                            strokeWidth="3.5"
+                          />
+                          {/* knot at top */}
+                          <path
+                            d="M83 38C83 34 90 30 90 30C90 30 97 34 97 38"
+                            stroke="#111827"
+                            strokeWidth="3"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                          {/* dollar sign */}
+                          <path
+                            d="M90 65V71"
+                            stroke="#111827"
+                            strokeWidth="3"
+                            strokeLinecap="round"
+                          />
+                          <path
+                            d="M90 93V99"
+                            stroke="#111827"
+                            strokeWidth="3"
+                            strokeLinecap="round"
+                          />
+                          <path
+                            d="M96 71H87C84.2 71 82 73.2 82 76C82 78.8 84.2 81 87 81H93C95.8 81 98 83.2 98 86C98 88.8 95.8 91 93 91H82"
+                            stroke="#111827"
+                            strokeWidth="3.5"
+                            strokeLinecap="round"
+                          />
+                          {/* shine */}
+                          <path
+                            d="M58 68C62 62 68 58 76 57"
+                            stroke="#16A34A"
+                            strokeWidth="2.5"
+                            strokeLinecap="round"
+                          />
+                        </svg>
                         <div className="text-sm text-gray-600 mb-2">
                           Est. Earnings
                         </div>
@@ -742,7 +1086,123 @@ export default function CampusJobERPMVP() {
                       </div>
 
                       <div className="bg-white rounded-xl p-6 border border-gray-200 min-w-[180px] w-[180px] h-[180px] flex-shrink-0 flex flex-col items-center justify-center text-center">
-                        <Calendar size={24} className="text-gray-400 mb-3" />
+                        {/* This Month — calendar icon */}
+                        <svg
+                          viewBox="0 0 180 140"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="mb-1"
+                          style={{
+                            width: "140px",
+                            height: "auto",
+                            maxWidth: "100%",
+                          }}
+                        >
+                          {/* accent shapes */}
+                          <rect
+                            x="20"
+                            y="22"
+                            width="13"
+                            height="13"
+                            transform="rotate(-10 20 22)"
+                            fill="#16A34A"
+                          />
+                          <path
+                            d="M154 20L157 26L163 29L157 32L154 38L151 32L145 29L151 26L154 20Z"
+                            fill="#22C55E"
+                          />
+                          <circle cx="30" cy="74" r="2.5" fill="#166534" />
+                          <circle
+                            cx="152"
+                            cy="68"
+                            r="3"
+                            stroke="#166534"
+                            strokeWidth="2"
+                          />
+                          <path
+                            d="M132 42H143"
+                            stroke="#166534"
+                            strokeWidth="2.5"
+                            strokeLinecap="round"
+                          />
+                          {/* motion lines */}
+                          <path
+                            d="M16 66H28"
+                            stroke="#111827"
+                            strokeWidth="3"
+                            strokeLinecap="round"
+                          />
+                          <path
+                            d="M12 74H22"
+                            stroke="#111827"
+                            strokeWidth="3"
+                            strokeLinecap="round"
+                          />
+                          <path
+                            d="M148 78H161"
+                            stroke="#111827"
+                            strokeWidth="3"
+                            strokeLinecap="round"
+                          />
+                          {/* calendar body */}
+                          <rect
+                            x="38"
+                            y="38"
+                            width="104"
+                            height="80"
+                            rx="8"
+                            fill="white"
+                            stroke="#111827"
+                            strokeWidth="4"
+                          />
+                          {/* header bar */}
+                          <rect
+                            x="38"
+                            y="38"
+                            width="104"
+                            height="26"
+                            rx="8"
+                            fill="#16A34A"
+                          />
+                          <rect
+                            x="38"
+                            y="52"
+                            width="104"
+                            height="12"
+                            fill="#16A34A"
+                          />
+                          {/* binding rings */}
+                          <rect
+                            x="64"
+                            y="28"
+                            width="8"
+                            height="20"
+                            rx="4"
+                            fill="white"
+                            stroke="#111827"
+                            strokeWidth="3"
+                          />
+                          <rect
+                            x="108"
+                            y="28"
+                            width="8"
+                            height="20"
+                            rx="4"
+                            fill="white"
+                            stroke="#111827"
+                            strokeWidth="3"
+                          />
+                          {/* date grid dots */}
+                          <circle cx="58" cy="82" r="4" fill="#111827" />
+                          <circle cx="78" cy="82" r="4" fill="#111827" />
+                          <circle cx="98" cy="82" r="4" fill="#16A34A" />
+                          <circle cx="118" cy="82" r="4" fill="#111827" />
+                          <circle cx="138" cy="82" r="4" fill="#111827" />
+                          <circle cx="58" cy="100" r="4" fill="#111827" />
+                          <circle cx="78" cy="100" r="4" fill="#111827" />
+                          <circle cx="98" cy="100" r="4" fill="#111827" />
+                          <circle cx="118" cy="100" r="4" fill="#111827" />
+                        </svg>
                         <div className="text-sm text-gray-600 mb-2">
                           This Month
                         </div>
@@ -755,7 +1215,86 @@ export default function CampusJobERPMVP() {
                       </div>
 
                       <div className="bg-white rounded-xl p-6 border border-gray-200 min-w-[180px] w-[180px] h-[180px] flex-shrink-0 flex flex-col items-center justify-center text-center">
-                        <AlertCircle size={24} className="text-gray-400 mb-3" />
+                        {/* Next Shift — lightning / badge icon */}
+                        <svg
+                          viewBox="0 0 180 140"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="mb-1"
+                          style={{
+                            width: "140px",
+                            height: "auto",
+                            maxWidth: "100%",
+                          }}
+                        >
+                          {/* accent shapes */}
+                          <rect
+                            x="18"
+                            y="20"
+                            width="13"
+                            height="13"
+                            transform="rotate(-10 18 20)"
+                            fill="#16A34A"
+                          />
+                          <path
+                            d="M156 18L159 24L165 27L159 30L156 36L153 30L147 27L153 24L156 18Z"
+                            fill="#22C55E"
+                          />
+                          <circle cx="28" cy="72" r="2.5" fill="#166534" />
+                          <circle
+                            cx="154"
+                            cy="66"
+                            r="3"
+                            stroke="#166534"
+                            strokeWidth="2"
+                          />
+                          <path
+                            d="M134 40H145"
+                            stroke="#166534"
+                            strokeWidth="2.5"
+                            strokeLinecap="round"
+                          />
+                          {/* motion lines */}
+                          <path
+                            d="M14 64H26"
+                            stroke="#111827"
+                            strokeWidth="3"
+                            strokeLinecap="round"
+                          />
+                          <path
+                            d="M10 72H20"
+                            stroke="#111827"
+                            strokeWidth="3"
+                            strokeLinecap="round"
+                          />
+                          <path
+                            d="M150 76H163"
+                            stroke="#111827"
+                            strokeWidth="3"
+                            strokeLinecap="round"
+                          />
+                          {/* badge / shield body */}
+                          <path
+                            d="M90 28L130 44V78C130 98 110 112 90 118C70 112 50 98 50 78V44L90 28Z"
+                            fill="white"
+                            stroke="#111827"
+                            strokeWidth="4"
+                            strokeLinejoin="round"
+                          />
+                          {/* green shield fill accent */}
+                          <path
+                            d="M90 36L122 50V78C122 94 106 106 90 112C74 106 58 94 58 78V50L90 36Z"
+                            fill="#DCFCE7"
+                          />
+                          {/* lightning bolt */}
+                          <path
+                            d="M98 52H84L80 76H90L86 100L108 70H96L98 52Z"
+                            fill="#16A34A"
+                            stroke="#111827"
+                            strokeWidth="3"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
                         <div className="text-sm text-gray-600 mb-2">
                           Next Shift
                         </div>
