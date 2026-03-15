@@ -191,7 +191,6 @@ Authorization: Bearer {access_token}
 {
   "success": true,
   "accessToken": "jwt_access_token_here",
-  "refreshToken": "jwt_refresh_token_here",
   "user": {
     "id": "uuid",
     "name": "Jordan Smith",
@@ -216,10 +215,11 @@ const handleLogin = async (email, password) => {
   const data = await response.json();
 
   if (data.success) {
-    // Store tokens
+    // Store access token in JS-accessible storage
     localStorage.setItem("accessToken", data.accessToken);
-    localStorage.setItem("refreshToken", data.refreshToken);
-    document.cookie = `refreshToken=${data.refreshToken}; HttpOnly; Secure; SameSite=Strict`;
+
+    // The backend sets the HttpOnly refresh token cookie via the Set-Cookie header.
+    // The frontend does not need (and should not have) direct access to the refresh token.
 
     // Update state
     setIsLoggedIn(true);
