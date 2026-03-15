@@ -1364,5 +1364,5 @@ If you have questions while implementing:
 ---
 
 **Last Updated:** February 23, 2026
-**Frontend Version:** React 18 + Tailwind CSS 3
+**Frontend Version:** React 19 + Tailwind CSS 3
 **Backend Stack:** FastAPI + Prisma + PostgreSQL (Supabase)
