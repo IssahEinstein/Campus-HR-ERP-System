@@ -11,7 +11,6 @@ export default function WorkerSchedule() {
   const [availability,  setAvailability]  = useState([]);
   const [selected,      setSelected]      = useState(null);
   const [loading,       setLoading]       = useState(true);
-  const [attendanceMap, setAttendanceMap] = useState({}); // assignmentId → record
 
   useEffect(() => {
     Promise.all([shiftsApi.myAssignments(), availabilityApi.myAvailability()])
@@ -154,7 +153,7 @@ export default function WorkerSchedule() {
         <ShiftDetailsModal
           assignment={selected}
           onClose={() => setSelected(null)}
-          onCheckedIn={(record) => setAttendanceMap((m) => ({ ...m, [selected.id]: record }))}
+          onCheckedIn={() => {}}
         />
       )}
     </div>

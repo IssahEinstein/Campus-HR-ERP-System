@@ -63,19 +63,19 @@ export default function SupervisorDashboard() {
           { icon: Calendar,      label: "Active Shifts",    value: activeShifts.length, href: "/supervisor/schedule" },
           { icon: ClipboardList, label: "Pending Approvals",value: totalPending,        href: "/supervisor/approvals" },
           { icon: Clock,         label: "Total Shifts",     value: shifts.length,       href: "/supervisor/schedule" },
-        ].map(({ icon: Icon, label, value, href }) => (
+        ].map((item) => (
           <Link
-            key={label}
-            to={href}
+            key={item.label}
+            to={item.href}
             className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow transition-shadow"
           >
             <div className="flex items-center gap-3 mb-2">
               <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: "#e6f0ec" }}>
-                <Icon size={16} style={{ color: "#00523E" }} />
+                <item.icon size={16} style={{ color: "#00523E" }} />
               </div>
-              <span className="text-sm text-gray-500">{label}</span>
+              <span className="text-sm text-gray-500">{item.label}</span>
             </div>
-            <div className="text-3xl font-bold text-gray-800">{value}</div>
+            <div className="text-3xl font-bold text-gray-800">{item.value}</div>
           </Link>
         ))}
       </div>

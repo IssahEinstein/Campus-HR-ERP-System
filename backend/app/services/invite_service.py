@@ -7,7 +7,7 @@ from app.auth.password import hash_password
 from app.core.config import settings
 from app.db import get_db
 from app.repositories import invites as invite_repo
-from app.schemas.invite import InviteSupervisorRequest, InviteWorkerRequest
+from app.schemas.invite import InviteAdminRequest, InviteSupervisorRequest, InviteWorkerRequest
 from app.utils.email import EmailDeliveryError, send_invite_email
 
 db = get_db()
@@ -84,6 +84,66 @@ async def invite_supervisor(data: InviteSupervisorRequest, admin_id: str) -> dic
         }
 
 
+async def invite_admin(data: InviteAdminRequest, inviter_admin_id: str) -> dict:
+    """Admin creates another admin account and sends an invite email."""
+    recipient_email = str(data.email).strip().lower()
+
+    if await db.user.find_unique(where={"email": recipient_email}):
+        raise HTTPException(status_code=409, detail="Email already registered")
+
+    if await db.admin.find_first(where={"adminId": data.admin_id}):
+        raise HTTPException(status_code=409, detail="Admin ID already in use")
+
+    user = await db.user.create(data={
+        "email": recipient_email,
+        "firstName": data.first_name,
+        "lastName": data.last_name,
+        "role": "ADMIN",
+        "passwordHash": _PLACEHOLDER,
+    })
+
+    await db.admin.create(data={
+        "userId": user.id,
+        "adminId": data.admin_id,
+    })
+
+    token = await invite_repo.create_admin_invite(
+        user.id,
+        invited_by_admin_id=inviter_admin_id,
+    )
+    invite_link = f"{settings.FRONTEND_URL}/accept-invite?token={token}&type=admin"
+
+    try:
+        await send_invite_email(
+            to=recipient_email,
+            name=f"{data.first_name} {data.last_name}",
+            role="Admin",
+            invite_link=invite_link,
+        )
+        return {"message": "Admin invited successfully", "email": recipient_email}
+    except EmailDeliveryError as exc:
+        logger.warning(
+            "Admin invite email failed for to=%s smtp_code=%s transient=%s reason=%s",
+            exc.recipient,
+            exc.smtp_code,
+            exc.transient,
+            exc.reason,
+        )
+        return {
+            "message": (
+                "Admin account created, but invite email was rejected for "
+                f"{exc.recipient}: {exc.reason}"
+            ),
+            "email": recipient_email,
+        }
+    except Exception as exc:  # noqa: BLE001
+        logger.exception("Failed to send admin invite email", exc_info=exc)
+        return {
+            "message": "Admin account created, but invite email could not be sent. Check SMTP settings.",
+            "email": recipient_email,
+        }
+
+
 async def resend_supervisor_invite(supervisor_id: str, admin_id: str) -> dict:
     """Admin resends supervisor invite email for accounts not yet activated."""
     supervisor = await db.supervisor.find_unique(
@@ -92,9 +152,6 @@ async def resend_supervisor_invite(supervisor_id: str, admin_id: str) -> dict:
     )
     if not supervisor:
         raise HTTPException(status_code=404, detail="Supervisor not found")
-
-    if supervisor.createdByAdminId and supervisor.createdByAdminId != admin_id:
-        raise HTTPException(status_code=403, detail="You are not allowed to resend invite for this supervisor")
 
     if supervisor.user.supervisorInvite is None or supervisor.user.supervisorInvite.usedAt is not None:
         raise HTTPException(status_code=409, detail="Supervisor account is already activated")
@@ -129,6 +186,65 @@ async def resend_supervisor_invite(supervisor_id: str, admin_id: str) -> dict:
         }
     except Exception as exc:  # noqa: BLE001
         logger.exception("Failed to resend supervisor invite email", exc_info=exc)
+        return {
+            "message": "Invite resend failed. Check SMTP settings.",
+            "email": recipient_email,
+        }
+
+
+async def resend_admin_invite(admin_profile_id: str, requester_admin_id: str) -> dict:
+    """Only the inviter admin can resend invite for not-yet-activated admins."""
+    requester = await db.admin.find_unique(where={"id": requester_admin_id})
+    if not requester:
+        raise HTTPException(status_code=404, detail="Admin profile not found")
+
+    invited_admin = await db.admin.find_unique(
+        where={"id": admin_profile_id},
+        include={"user": {"include": {"adminInvite": True}}},
+    )
+    if not invited_admin:
+        raise HTTPException(status_code=404, detail="Admin not found")
+
+    if invited_admin.user.adminInvite is None or invited_admin.user.adminInvite.usedAt is not None:
+        raise HTTPException(status_code=409, detail="Admin account is already activated")
+
+    inviter_id = invited_admin.user.adminInvite.invitedByAdminId
+    if inviter_id and inviter_id != requester_admin_id:
+        raise HTTPException(status_code=403, detail="Only the inviting admin can resend this invite")
+
+    token = await invite_repo.create_admin_invite(
+        invited_admin.userId,
+        invited_by_admin_id=requester_admin_id,
+    )
+    invite_link = f"{settings.FRONTEND_URL}/accept-invite?token={token}&type=admin"
+    recipient_email = invited_admin.user.email
+    full_name = f"{invited_admin.user.firstName} {invited_admin.user.lastName}".strip()
+
+    try:
+        await send_invite_email(
+            to=recipient_email,
+            name=full_name,
+            role="Admin",
+            invite_link=invite_link,
+        )
+        return {
+            "message": "Admin invite resent successfully",
+            "email": recipient_email,
+        }
+    except EmailDeliveryError as exc:
+        logger.warning(
+            "Resend admin invite failed for to=%s smtp_code=%s transient=%s reason=%s",
+            exc.recipient,
+            exc.smtp_code,
+            exc.transient,
+            exc.reason,
+        )
+        return {
+            "message": f"Invite resend failed for {exc.recipient}: {exc.reason}",
+            "email": recipient_email,
+        }
+    except Exception as exc:  # noqa: BLE001
+        logger.exception("Failed to resend admin invite email", exc_info=exc)
         return {
             "message": "Invite resend failed. Check SMTP settings.",
             "email": recipient_email,
@@ -304,6 +420,32 @@ async def accept_supervisor_invite(token: str, password: str) -> dict:
     except Exception as exc:  # noqa: BLE001
         logger.exception(
             "Supervisor password set but failed to mark invite used (invite_id=%s)",
+            invite.id,
+            exc_info=exc,
+        )
+    return {"message": "Password set successfully. You can now log in."}
+
+
+async def accept_admin_invite(token: str, password: str) -> dict:
+    """Admin accepts invite and sets their password."""
+    invite = await invite_repo.get_admin_invite_by_token(token)
+
+    if not invite:
+        raise HTTPException(status_code=400, detail="Invalid or expired invite token")
+    if invite.usedAt is not None:
+        return {"message": "Account already activated. You can now log in."}
+    if _aware(invite.expiresAt) < datetime.now(timezone.utc):
+        raise HTTPException(status_code=400, detail="Invite token has expired")
+
+    await db.user.update(
+        where={"id": invite.userId},
+        data={"passwordHash": hash_password(password)},
+    )
+    try:
+        await invite_repo.mark_admin_invite_used(invite.id)
+    except Exception as exc:  # noqa: BLE001
+        logger.exception(
+            "Admin password set but failed to mark invite used (invite_id=%s)",
             invite.id,
             exc_info=exc,
         )

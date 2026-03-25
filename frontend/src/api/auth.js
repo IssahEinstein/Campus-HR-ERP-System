@@ -34,5 +34,8 @@ export const removeAvatar = () =>
 export const acceptSupervisorInvite = (token, password) =>
   client.post("/invites/accept-supervisor", { token, password }).then((r) => r.data);
 
+export const acceptAdminInvite = (token, password) =>
+  client.post("/invites/accept-admin", { token, password }).then((r) => r.data);
+
 export const acceptWorkerInvite = (token, password) =>
   client.post("/invites/accept-worker", { token, password }).then((r) => r.data);

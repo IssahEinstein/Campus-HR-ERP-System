@@ -17,6 +17,13 @@ class InviteSupervisorRequest(BaseModel):
     department_id: str
 
 
+class InviteAdminRequest(BaseModel):
+    email: EmailStr
+    first_name: str
+    last_name: str
+    admin_id: str  # Human-readable 800 number
+
+
 class InviteWorkerRequest(BaseModel):
     email: EmailStr
     first_name: str

@@ -118,6 +118,12 @@ async def login(email: str, password: str, device_id: str | None = None) -> tupl
         and user_full.supervisorInvite is not None
         and user_full.supervisorInvite.usedAt is None
     )
+    admin_invite_pending = (
+        str(user.role) == "ADMIN"
+        and user_full is not None
+        and user_full.adminInvite is not None
+        and user_full.adminInvite.usedAt is None
+    )
     worker_invite_pending = (
         str(user.role) == "WORKER"
         and user_full is not None
@@ -125,7 +131,7 @@ async def login(email: str, password: str, device_id: str | None = None) -> tupl
         and str(user_full.workerProfile.status) == "INVITED"
     )
 
-    if supervisor_invite_pending or worker_invite_pending:
+    if supervisor_invite_pending or admin_invite_pending or worker_invite_pending:
         raise HTTPException(
             status_code=403,
             detail="Account not yet activated. Please accept your invite email first.",

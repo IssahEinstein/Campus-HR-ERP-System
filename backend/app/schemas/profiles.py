@@ -75,3 +75,18 @@ class WorkerResponse(BaseModel):
     created_at: datetime
     user: Optional[UserBasic] = None
     department: Optional[DepartmentResponse] = None
+
+
+class AdminResponse(BaseModel):
+    model_config = ConfigDict(
+        from_attributes=True,
+        alias_generator=to_camel,
+        populate_by_name=True,
+    )
+
+    id: str
+    admin_id: str
+    user_id: str
+    created_at: datetime
+    invite_pending: bool = False
+    user: Optional[UserBasic] = None

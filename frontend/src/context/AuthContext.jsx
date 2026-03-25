@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useState, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import * as authApi from "../api/auth";
@@ -44,7 +45,10 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     if (!token) return;
-    refreshProfile();
+    const frame = window.requestAnimationFrame(() => {
+      void refreshProfile();
+    });
+    return () => window.cancelAnimationFrame(frame);
   }, [token, refreshProfile]);
 
   const login = useCallback(async (email, password) => {

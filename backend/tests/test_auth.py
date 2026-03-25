@@ -44,6 +44,8 @@ def _mock_user_full(role: str = "ADMIN") -> MagicMock:
     user.adminProfile = admin_p if role == "ADMIN" else None
     user.supervisorProfile = sup_p if role == "SUPERVISOR" else None
     user.workerProfile = wk_p if role == "WORKER" else None
+    user.supervisorInvite = None
+    user.adminInvite = None
     return user
 
 
@@ -109,6 +111,27 @@ async def test_login_invite_pending_blocked(client: httpx.AsyncClient):
     pending_invite = MagicMock()
     pending_invite.usedAt = None
     pending_user_full.supervisorInvite = pending_invite
+
+    with (
+        patch("app.services.auth_service.get_user_by_email", AsyncMock(return_value=pending_user)),
+        patch("app.services.auth_service.get_user_with_profile", AsyncMock(return_value=pending_user_full)),
+    ):
+        resp = await client.post(
+            "/api/auth/login",
+            json={"email": "user@test.com", "password": TEST_PASSWORD},
+        )
+
+    assert resp.status_code == 403
+    detail = resp.json()["detail"].lower()
+    assert "invite" in detail or "activated" in detail
+
+
+async def test_login_admin_invite_pending_blocked(client: httpx.AsyncClient):
+    pending_user = _mock_user(role="ADMIN")
+    pending_user_full = _mock_user_full("ADMIN")
+    pending_invite = MagicMock()
+    pending_invite.usedAt = None
+    pending_user_full.adminInvite = pending_invite
 
     with (
         patch("app.services.auth_service.get_user_by_email", AsyncMock(return_value=pending_user)),

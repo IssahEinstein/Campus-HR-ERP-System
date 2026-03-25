@@ -16,6 +16,15 @@ async def accept_supervisor_invite(body: AcceptInviteRequest):
     return await invite_service.accept_supervisor_invite(body.token, body.password)
 
 
+@router.post("/accept-admin", response_model=MessageResponse)
+async def accept_admin_invite(body: AcceptInviteRequest):
+    """
+    Public endpoint — admin accepts their invite and sets a password.
+    The token comes from the email link.
+    """
+    return await invite_service.accept_admin_invite(body.token, body.password)
+
+
 @router.post("/accept-worker", response_model=MessageResponse)
 async def accept_worker_invite(body: AcceptInviteRequest):
     """

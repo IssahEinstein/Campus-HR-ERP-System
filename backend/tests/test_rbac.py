@@ -84,6 +84,54 @@ async def test_admin_supervisors_blocks_worker(client: httpx.AsyncClient, worker
     assert resp.status_code == 403
 
 
+async def test_admins_list_allows_admin(client: httpx.AsyncClient, admin_token: str):
+    with patch("app.api.admin._db") as mock_db:
+        mock_db.admin.find_many = AsyncMock(return_value=[])
+        resp = await client.get(
+            "/api/admin/admins",
+            headers={"Authorization": f"Bearer {admin_token}"},
+        )
+    assert resp.status_code == 200
+
+
+async def test_admins_list_blocks_supervisor(client: httpx.AsyncClient, supervisor_token: str):
+    resp = await client.get(
+        "/api/admin/admins",
+        headers={"Authorization": f"Bearer {supervisor_token}"},
+    )
+    assert resp.status_code == 403
+
+
+async def test_admin_invite_admin_allows_admin(client: httpx.AsyncClient, admin_token: str):
+    payload = {
+        "email": "new-admin@test.com",
+        "first_name": "New",
+        "last_name": "Admin",
+        "admin_id": "A-9001",
+    }
+    with patch("app.api.admin.invite_service.invite_admin", AsyncMock(return_value={"message": "ok"})):
+        resp = await client.post(
+            "/api/admin/invite-admin",
+            headers={"Authorization": f"Bearer {admin_token}"},
+            json=payload,
+        )
+    assert resp.status_code == 201
+
+
+async def test_admin_invite_admin_blocks_supervisor(client: httpx.AsyncClient, supervisor_token: str):
+    resp = await client.post(
+        "/api/admin/invite-admin",
+        headers={"Authorization": f"Bearer {supervisor_token}"},
+        json={
+            "email": "new-admin@test.com",
+            "first_name": "New",
+            "last_name": "Admin",
+            "admin_id": "A-9001",
+        },
+    )
+    assert resp.status_code == 403
+
+
 # ---------------------------------------------------------------------------
 # Supervisor-only routes
 # ---------------------------------------------------------------------------

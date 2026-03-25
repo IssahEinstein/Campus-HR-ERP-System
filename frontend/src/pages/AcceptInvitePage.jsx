@@ -14,12 +14,13 @@ export default function AcceptInvitePage() {
   const [success, setSuccess] = useState("");
 
   const roleLabel = useMemo(() => {
+    if (type === "admin") return "Admin";
     if (type === "supervisor") return "Supervisor";
     if (type === "worker") return "Worker";
     return "Account";
   }, [type]);
 
-  const isValidType = type === "supervisor" || type === "worker";
+  const isValidType = type === "admin" || type === "supervisor" || type === "worker";
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -43,9 +44,14 @@ export default function AcceptInvitePage() {
 
     setLoading(true);
     try {
-      const response = type === "supervisor"
-        ? await authApi.acceptSupervisorInvite(token, password)
-        : await authApi.acceptWorkerInvite(token, password);
+      let response;
+      if (type === "admin") {
+        response = await authApi.acceptAdminInvite(token, password);
+      } else if (type === "supervisor") {
+        response = await authApi.acceptSupervisorInvite(token, password);
+      } else {
+        response = await authApi.acceptWorkerInvite(token, password);
+      }
       setSuccess(response?.message ?? "Password set successfully. You can now log in.");
       setPassword("");
       setConfirmPassword("");

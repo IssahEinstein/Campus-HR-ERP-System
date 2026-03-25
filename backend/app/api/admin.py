@@ -6,8 +6,13 @@ from app.auth.dependencies import require_role
 from app.db import get_db
 from app.schemas.auth import CurrentUser
 from app.schemas.common import BootstrapResponse, MessageResponse
-from app.schemas.invite import BootstrapAdminRequest, DepartmentCreate, InviteSupervisorRequest
-from app.schemas.profiles import DepartmentResponse, SupervisorResponse, WorkerResponse
+from app.schemas.invite import (
+    BootstrapAdminRequest,
+    DepartmentCreate,
+    InviteAdminRequest,
+    InviteSupervisorRequest,
+)
+from app.schemas.profiles import AdminResponse, DepartmentResponse, SupervisorResponse, WorkerResponse
 from app.services import admin_service, department_service, invite_service
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
@@ -33,6 +38,27 @@ async def invite_supervisor(
 ):
     """Admin invites a new supervisor — an email with a setup link is sent."""
     return await invite_service.invite_supervisor(body, admin_id=current_user.profile_id)
+
+
+@router.post("/invite-admin", status_code=201, response_model=MessageResponse)
+async def invite_admin(
+    body: InviteAdminRequest,
+    current_user: Annotated[CurrentUser, Depends(require_role("ADMIN"))],
+):
+    """Admin invites another admin (peer-level) with an activation email."""
+    return await invite_service.invite_admin(body, inviter_admin_id=current_user.profile_id)
+
+
+@router.post("/admins/{admin_profile_id}/resend-invite", response_model=MessageResponse)
+async def resend_admin_invite(
+    admin_profile_id: str,
+    current_user: Annotated[CurrentUser, Depends(require_role("ADMIN"))],
+):
+    """Inviting admin can resend invite email to a not-yet-activated admin."""
+    return await invite_service.resend_admin_invite(
+        admin_profile_id=admin_profile_id,
+        requester_admin_id=current_user.profile_id,
+    )
 
 
 @router.post("/supervisors/{supervisor_id}/resend-invite", response_model=MessageResponse)
@@ -73,6 +99,33 @@ async def list_supervisors(
             "department": supervisor.department,
         }
         for supervisor in supervisors
+    ]
+
+
+@router.get("/admins", response_model=list[AdminResponse])
+async def list_admins(
+    current_user: Annotated[CurrentUser, Depends(require_role("ADMIN"))],
+):
+    """Admin views all admins across the system."""
+    admins = await _db.admin.find_many(
+        include={"user": {"include": {"adminInvite": True}}},
+        order={"createdAt": "desc"},
+    )
+
+    return [
+        {
+            "id": admin.id,
+            "admin_id": admin.adminId,
+            "user_id": admin.userId,
+            "created_at": admin.createdAt,
+            "invite_pending": bool(
+                admin.user
+                and admin.user.adminInvite
+                and admin.user.adminInvite.usedAt is None
+            ),
+            "user": admin.user,
+        }
+        for admin in admins
     ]
 
 
