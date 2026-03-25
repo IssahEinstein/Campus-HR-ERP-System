@@ -413,17 +413,21 @@ export default function CampusJobERPMVP() {
                   </div>
 
                   {/* Desktop Navigation */}
-                  <div className="hidden md:flex items-center gap-6">
+                  <div className="hidden md:flex items-center gap-3">
                     <a
                       href="#"
                       onClick={(e) => {
                         e.preventDefault();
                         setActivePage("dashboard");
                       }}
-                      className={`text-sm font-medium ${activePage === "dashboard" ? "" : "text-gray-600 hover:text-gray-900"}`}
-                      style={
-                        activePage === "dashboard" ? { color: "#00523E" } : {}
+                      aria-current={
+                        activePage === "dashboard" ? "page" : undefined
                       }
+                      className={`text-sm ${
+                        activePage === "dashboard"
+                          ? "inline-flex items-center px-3 py-1 rounded-full bg-[#00523E] text-white font-medium"
+                          : "text-gray-500 hover:text-gray-900"
+                      }`}
                     >
                       Dashboard
                     </a>
@@ -435,12 +439,14 @@ export default function CampusJobERPMVP() {
                             e.preventDefault();
                             setActivePage("schedule");
                           }}
-                          className={`text-sm ${activePage === "schedule" ? "font-medium" : "text-gray-600 hover:text-gray-900"}`}
-                          style={
-                            activePage === "schedule"
-                              ? { color: "#00523E" }
-                              : {}
+                          aria-current={
+                            activePage === "schedule" ? "page" : undefined
                           }
+                          className={`text-sm ${
+                            activePage === "schedule"
+                              ? "inline-flex items-center px-3 py-1 rounded-full bg-[#00523E] text-white font-medium"
+                              : "text-gray-500 hover:text-gray-900"
+                          }`}
                         >
                           Schedule
                         </a>
@@ -450,10 +456,14 @@ export default function CampusJobERPMVP() {
                             e.preventDefault();
                             setActivePage("payroll");
                           }}
-                          className={`text-sm ${activePage === "payroll" ? "font-medium" : "text-gray-600 hover:text-gray-900"}`}
-                          style={
-                            activePage === "payroll" ? { color: "#00523E" } : {}
+                          aria-current={
+                            activePage === "payroll" ? "page" : undefined
                           }
+                          className={`text-sm ${
+                            activePage === "payroll"
+                              ? "inline-flex items-center px-3 py-1 rounded-full bg-[#00523E] text-white font-medium"
+                              : "text-gray-500 hover:text-gray-900"
+                          }`}
                         >
                           Payroll
                         </a>
@@ -463,12 +473,14 @@ export default function CampusJobERPMVP() {
                             e.preventDefault();
                             setActivePage("requests");
                           }}
-                          className={`text-sm ${activePage === "requests" ? "font-medium" : "text-gray-600 hover:text-gray-900"}`}
-                          style={
-                            activePage === "requests"
-                              ? { color: "#00523E" }
-                              : {}
+                          aria-current={
+                            activePage === "requests" ? "page" : undefined
                           }
+                          className={`text-sm ${
+                            activePage === "requests"
+                              ? "inline-flex items-center px-3 py-1 rounded-full bg-[#00523E] text-white font-medium"
+                              : "text-gray-500 hover:text-gray-900"
+                          }`}
                         >
                           Requests
                         </a>
@@ -482,10 +494,14 @@ export default function CampusJobERPMVP() {
                             e.preventDefault();
                             setActivePage("team");
                           }}
-                          className={`text-sm ${activePage === "team" ? "font-medium" : "text-gray-600 hover:text-gray-900"}`}
-                          style={
-                            activePage === "team" ? { color: "#00523E" } : {}
+                          aria-current={
+                            activePage === "team" ? "page" : undefined
                           }
+                          className={`text-sm ${
+                            activePage === "team"
+                              ? "inline-flex items-center px-3 py-1 rounded-full bg-[#00523E] text-white font-medium"
+                              : "text-gray-500 hover:text-gray-900"
+                          }`}
                         >
                           Team
                         </a>
@@ -495,12 +511,14 @@ export default function CampusJobERPMVP() {
                             e.preventDefault();
                             setActivePage("schedule");
                           }}
-                          className={`text-sm ${activePage === "schedule" ? "font-medium" : "text-gray-600 hover:text-gray-900"}`}
-                          style={
-                            activePage === "schedule"
-                              ? { color: "#00523E" }
-                              : {}
+                          aria-current={
+                            activePage === "schedule" ? "page" : undefined
                           }
+                          className={`text-sm ${
+                            activePage === "schedule"
+                              ? "inline-flex items-center px-3 py-1 rounded-full bg-[#00523E] text-white font-medium"
+                              : "text-gray-500 hover:text-gray-900"
+                          }`}
                         >
                           Schedule
                         </a>
@@ -510,12 +528,14 @@ export default function CampusJobERPMVP() {
                             e.preventDefault();
                             setActivePage("approvals");
                           }}
-                          className={`text-sm ${activePage === "approvals" ? "font-medium" : "text-gray-600 hover:text-gray-900"}`}
-                          style={
-                            activePage === "approvals"
-                              ? { color: "#00523E" }
-                              : {}
+                          aria-current={
+                            activePage === "approvals" ? "page" : undefined
                           }
+                          className={`text-sm ${
+                            activePage === "approvals"
+                              ? "inline-flex items-center px-3 py-1 rounded-full bg-[#00523E] text-white font-medium"
+                              : "text-gray-500 hover:text-gray-900"
+                          }`}
                         >
                           Approvals
                         </a>
