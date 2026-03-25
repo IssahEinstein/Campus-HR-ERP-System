@@ -1,6 +1,8 @@
-from pydantic import BaseModel, field_validator, ConfigDict
 from datetime import datetime
 from typing import Optional
+
+from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic.alias_generators import to_camel
 
 
 class AvailabilityCreate(BaseModel):
@@ -30,7 +32,11 @@ class AvailabilityUpdate(BaseModel):
 
 
 class AvailabilityResponse(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(
+        from_attributes=True,
+        alias_generator=to_camel,
+        populate_by_name=True,
+    )
 
     id: str
     worker_id: str

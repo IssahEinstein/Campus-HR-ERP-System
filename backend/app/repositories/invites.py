@@ -21,8 +21,18 @@ async def create_supervisor_invite(user_id: str) -> str:
     expires_at = datetime.now(timezone.utc) + timedelta(hours=_INVITE_TTL_HOURS)
     await db.supervisorinvite.upsert(
         where={"userId": user_id},
-        create={"userId": user_id, "tokenHash": _hash(token), "expiresAt": expires_at},
-        update={"tokenHash": _hash(token), "expiresAt": expires_at, "usedAt": None},
+        data={
+            "create": {
+                "userId": user_id,
+                "tokenHash": _hash(token),
+                "expiresAt": expires_at,
+            },
+            "update": {
+                "tokenHash": _hash(token),
+                "expiresAt": expires_at,
+                "usedAt": None,
+            },
+        },
     )
     return token
 

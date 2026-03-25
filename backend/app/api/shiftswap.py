@@ -6,14 +6,14 @@ from app.auth.authorization import ensure_supervisor_owns_worker
 from app.auth.dependencies import require_role
 from app.db import get_db
 from app.schemas.auth import CurrentUser
-from app.schemas.shiftswap import ShiftSwapCreate, ShiftSwapReview
+from app.schemas.shiftswap import ShiftSwapCreate, ShiftSwapResponse, ShiftSwapReview
 from app.services import shiftswap_service
 
 router = APIRouter(prefix="/shiftswap", tags=["ShiftSwap"])
 _db = get_db()
 
 
-@router.post("", status_code=201)
+@router.post("", status_code=201, response_model=ShiftSwapResponse)
 async def submit_swap(
     body: ShiftSwapCreate,
     current_user: Annotated[CurrentUser, Depends(require_role("WORKER"))],
@@ -22,7 +22,7 @@ async def submit_swap(
     return await shiftswap_service.submit_swap_request(body, worker_id=current_user.profile_id)
 
 
-@router.post("/{request_id}/cancel")
+@router.post("/{request_id}/cancel", response_model=ShiftSwapResponse)
 async def cancel_swap(
     request_id: str,
     current_user: Annotated[CurrentUser, Depends(require_role("WORKER"))],
@@ -33,7 +33,7 @@ async def cancel_swap(
     )
 
 
-@router.get("/my")
+@router.get("/my", response_model=list[ShiftSwapResponse])
 async def my_swaps(
     current_user: Annotated[CurrentUser, Depends(require_role("WORKER"))],
 ):
@@ -43,7 +43,7 @@ async def my_swaps(
     )
 
 
-@router.get("/pending")
+@router.get("/pending", response_model=list[ShiftSwapResponse])
 async def pending_swaps(
     current_user: Annotated[CurrentUser, Depends(require_role("SUPERVISOR", "ADMIN"))],
 ):
@@ -67,7 +67,7 @@ async def pending_swaps(
     ]
 
 
-@router.post("/{request_id}/review")
+@router.post("/{request_id}/review", response_model=ShiftSwapResponse)
 async def review_swap(
     request_id: str,
     body: ShiftSwapReview,

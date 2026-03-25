@@ -19,5 +19,6 @@ async def get_user_with_profile(user_id: str) -> Optional[dict]:
             "adminProfile": True,
             "supervisorProfile": True,
             "workerProfile": True,
+            "supervisorInvite": True,
         },
     )

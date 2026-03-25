@@ -1,7 +1,9 @@
 import logging
+from pathlib import Path
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.core.logging_config import logger
 from app.db import connect_db, disconnect_db
@@ -17,6 +19,7 @@ from app.api.timeoff import router as timeoff_router
 from app.api.payroll import router as payroll_router
 from app.api.availability import router as availability_router
 from app.api.shiftswap import router as shiftswap_router
+from app.api.feedback import router as feedback_router
 
 # ── App ────────────────────────────────────────────────────────────────────────
 app = FastAPI(
@@ -24,6 +27,10 @@ app = FastAPI(
     version="1.0.0",
     description="Workforce management API: shifts, attendance, time-off, and payroll.",
 )
+
+uploads_dir = Path(__file__).resolve().parents[2] / ".data" / "uploads"
+uploads_dir.mkdir(parents=True, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=uploads_dir), name="uploads")
 
 # ── CORS ───────────────────────────────────────────────────────────────────────
 app.add_middleware(
@@ -45,6 +52,7 @@ app.include_router(timeoff_router,     prefix="/api", tags=["Time-Off"])
 app.include_router(payroll_router,     prefix="/api", tags=["Payroll"])
 app.include_router(availability_router, prefix="/api", tags=["Availability"])
 app.include_router(shiftswap_router,   prefix="/api", tags=["ShiftSwap"])
+app.include_router(feedback_router,    prefix="/api", tags=["Feedback"])
 
 # ── DB lifecycle ───────────────────────────────────────────────────────────────
 @app.on_event("startup")

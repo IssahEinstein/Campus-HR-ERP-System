@@ -72,6 +72,8 @@ model User {
   passwordHash String
   firstName    String
   lastName     String
+  bio          String?
+  avatarUrl    String?
   role         UserRole
 
   supervisorProfile Supervisor?

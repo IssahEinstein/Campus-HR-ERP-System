@@ -5,13 +5,13 @@ from fastapi import APIRouter, Depends, HTTPException
 from app.auth.authorization import ensure_supervisor_owns_worker
 from app.auth.dependencies import require_role
 from app.schemas.auth import CurrentUser
-from app.schemas.payroll import PayrollGenerate, PayStubStatusUpdate
+from app.schemas.payroll import PayrollGenerate, PayStubResponse, PayStubStatusUpdate
 from app.services import payroll_service
 
 router = APIRouter(prefix="/payroll", tags=["Payroll"])
 
 
-@router.post("/generate", status_code=201)
+@router.post("/generate", status_code=201, response_model=PayStubResponse)
 async def generate_paystub(
     body: PayrollGenerate,
     current_user: Annotated[CurrentUser, Depends(require_role("SUPERVISOR", "ADMIN"))],
@@ -22,7 +22,7 @@ async def generate_paystub(
     return await payroll_service.generate_paystub(body, supervisor_id=current_user.profile_id)
 
 
-@router.get("/my")
+@router.get("/my", response_model=list[PayStubResponse])
 async def my_paystubs(
     current_user: Annotated[CurrentUser, Depends(require_role("WORKER"))],
 ):
@@ -30,7 +30,7 @@ async def my_paystubs(
     return await payroll_service.list_paystubs_for_worker(worker_id=current_user.profile_id)
 
 
-@router.get("/all")
+@router.get("/all", response_model=list[PayStubResponse])
 async def all_paystubs(
     current_user: Annotated[CurrentUser, Depends(require_role("SUPERVISOR", "ADMIN"))],
     status: Optional[str] = None,
@@ -39,7 +39,7 @@ async def all_paystubs(
     return await payroll_service.list_all_paystubs(status)
 
 
-@router.get("/worker/{worker_id}")
+@router.get("/worker/{worker_id}", response_model=list[PayStubResponse])
 async def worker_paystubs(
     worker_id: str,
     current_user: Annotated[CurrentUser, Depends(require_role("SUPERVISOR", "ADMIN"))],
@@ -53,7 +53,7 @@ async def worker_paystubs(
     return await payroll_service.list_paystubs_for_worker(worker_id)
 
 
-@router.put("/{paystub_id}/status")
+@router.put("/{paystub_id}/status", response_model=PayStubResponse)
 async def update_status(
     paystub_id: str,
     body: PayStubStatusUpdate,
@@ -65,7 +65,7 @@ async def update_status(
     )
 
 
-@router.get("/{paystub_id}")
+@router.get("/{paystub_id}", response_model=PayStubResponse)
 async def get_paystub(
     paystub_id: str,
     current_user: Annotated[CurrentUser, Depends(require_role("WORKER", "SUPERVISOR", "ADMIN"))],

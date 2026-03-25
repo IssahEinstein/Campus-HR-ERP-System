@@ -6,14 +6,14 @@ from app.auth.authorization import ensure_supervisor_owns_worker
 from app.auth.dependencies import require_role
 from app.db import get_db
 from app.schemas.auth import CurrentUser
-from app.schemas.timeoff import TimeOffCreate, TimeOffReview
+from app.schemas.timeoff import TimeOffCreate, TimeOffResponse, TimeOffReview
 from app.services import timeoff_service
 
 router = APIRouter(prefix="/timeoff", tags=["Time-Off"])
 _db = get_db()
 
 
-@router.post("", status_code=201)
+@router.post("", status_code=201, response_model=TimeOffResponse)
 async def submit_request(
     body: TimeOffCreate,
     current_user: Annotated[CurrentUser, Depends(require_role("WORKER"))],
@@ -22,7 +22,7 @@ async def submit_request(
     return await timeoff_service.submit_request(body, worker_id=current_user.profile_id)
 
 
-@router.post("/{request_id}/cancel")
+@router.post("/{request_id}/cancel", response_model=TimeOffResponse)
 async def cancel_request(
     request_id: str,
     current_user: Annotated[CurrentUser, Depends(require_role("WORKER"))],
@@ -31,7 +31,7 @@ async def cancel_request(
     return await timeoff_service.cancel_request(request_id, worker_id=current_user.profile_id)
 
 
-@router.get("/my")
+@router.get("/my", response_model=list[TimeOffResponse])
 async def my_requests(
     current_user: Annotated[CurrentUser, Depends(require_role("WORKER"))],
 ):
@@ -39,7 +39,7 @@ async def my_requests(
     return await timeoff_service.list_requests_for_worker(worker_id=current_user.profile_id)
 
 
-@router.get("/pending")
+@router.get("/pending", response_model=list[TimeOffResponse])
 async def pending_requests(
     current_user: Annotated[CurrentUser, Depends(require_role("SUPERVISOR", "ADMIN"))],
 ):
@@ -59,7 +59,7 @@ async def pending_requests(
     return [r for r in all_pending if r.workerId in dept_worker_ids]
 
 
-@router.post("/{request_id}/review")
+@router.post("/{request_id}/review", response_model=TimeOffResponse)
 async def review_request(
     request_id: str,
     body: TimeOffReview,
@@ -75,7 +75,7 @@ async def review_request(
     )
 
 
-@router.get("/{request_id}")
+@router.get("/{request_id}", response_model=TimeOffResponse)
 async def get_request(
     request_id: str,
     current_user: Annotated[CurrentUser, Depends(require_role("WORKER", "SUPERVISOR", "ADMIN"))],

@@ -1,7 +1,9 @@
-from pydantic import BaseModel, field_validator, ConfigDict
 from datetime import datetime
-from typing import Optional
 from enum import Enum
+from typing import Optional
+
+from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic.alias_generators import to_camel
 
 
 class PayStubStatus(str, Enum):
@@ -47,7 +49,11 @@ class PayStubStatusUpdate(BaseModel):
 
 
 class PayStubResponse(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(
+        from_attributes=True,
+        alias_generator=to_camel,
+        populate_by_name=True,
+    )
 
     id: str
     worker_id: str
@@ -60,6 +66,6 @@ class PayStubResponse(BaseModel):
     deductions: float
     net_pay: float
     status: PayStubStatus
-    notes: Optional[str]
+    notes: Optional[str] = None
     created_at: datetime
     updated_at: datetime

@@ -1,6 +1,8 @@
-from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 from typing import Optional
+
+from pydantic import BaseModel, ConfigDict
+from pydantic.alias_generators import to_camel
 
 
 class CheckInRequest(BaseModel):
@@ -13,14 +15,19 @@ class CheckOutRequest(BaseModel):
 
 
 class AttendanceResponse(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+    """Represents a single check-in/check-out attendance record."""
+    model_config = ConfigDict(
+        from_attributes=True,
+        alias_generator=to_camel,
+        populate_by_name=True,
+    )
 
     id: str
     worker_id: str
     shift_assignment_id: str
     checked_in_at: datetime
-    checked_out_at: Optional[datetime]
-    hours_worked: Optional[float]
-    notes: Optional[str]
+    checked_out_at: Optional[datetime] = None
+    hours_worked: Optional[float] = None
+    notes: Optional[str] = None
     created_at: datetime
     updated_at: datetime

@@ -1,7 +1,9 @@
-from pydantic import BaseModel, field_validator, ConfigDict
 from datetime import datetime
-from typing import Optional
 from enum import Enum
+from typing import Optional
+
+from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic.alias_generators import to_camel
 
 
 class ShiftStatus(str, Enum):
@@ -47,8 +49,36 @@ class AssignWorkerRequest(BaseModel):
     worker_id: str
 
 
+class ShiftResponse(BaseModel):
+    model_config = ConfigDict(
+        from_attributes=True,
+        alias_generator=to_camel,
+        populate_by_name=True,
+    )
+
+    id: str
+    supervisor_id: str
+    title: str
+    description: Optional[str] = None
+    location: Optional[str] = None
+    start_time: datetime
+    end_time: datetime
+    status: ShiftStatus
+    expected_hours: Optional[float] = None
+    created_at: datetime
+    updated_at: datetime
+
+
 class AssignmentResponse(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+    """
+    ShiftAssignment record. The `shift` field is populated when the route
+    queries with include={"shift": True} (e.g. GET /shifts/my-assignments).
+    """
+    model_config = ConfigDict(
+        from_attributes=True,
+        alias_generator=to_camel,
+        populate_by_name=True,
+    )
 
     id: str
     shift_id: str
@@ -56,19 +86,4 @@ class AssignmentResponse(BaseModel):
     assigned_by_id: str
     status: AssignmentStatus
     created_at: datetime
-
-
-class ShiftResponse(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    id: str
-    supervisor_id: str
-    title: str
-    description: Optional[str]
-    location: Optional[str]
-    start_time: datetime
-    end_time: datetime
-    status: ShiftStatus
-    expected_hours: Optional[float]
-    created_at: datetime
-    updated_at: datetime
+    shift: Optional[ShiftResponse] = None

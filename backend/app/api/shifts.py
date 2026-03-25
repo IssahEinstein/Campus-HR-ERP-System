@@ -6,14 +6,14 @@ from app.auth.authorization import ensure_shift_belongs_to_supervisor, ensure_su
 from app.auth.dependencies import require_role
 from app.db import get_db
 from app.schemas.auth import CurrentUser
-from app.schemas.shift import AssignWorkerRequest, ShiftCreate, ShiftUpdate
+from app.schemas.shift import AssignmentResponse, AssignWorkerRequest, ShiftCreate, ShiftResponse, ShiftUpdate
 from app.services import shift_service
 
 router = APIRouter(prefix="/shifts", tags=["Shifts"])
 _db = get_db()
 
 
-@router.post("", status_code=201)
+@router.post("", status_code=201, response_model=ShiftResponse)
 async def create_shift(
     body: ShiftCreate,
     current_user: Annotated[CurrentUser, Depends(require_role("SUPERVISOR"))],
@@ -22,7 +22,7 @@ async def create_shift(
     return await shift_service.create_shift(body, supervisor_id=current_user.profile_id)
 
 
-@router.get("")
+@router.get("", response_model=list[ShiftResponse])
 async def list_shifts(
     current_user: Annotated[CurrentUser, Depends(require_role("SUPERVISOR", "ADMIN"))],
 ):
@@ -35,7 +35,7 @@ async def list_shifts(
     return await shift_service.list_shifts(supervisor_id=current_user.profile_id)
 
 
-@router.get("/my-assignments")
+@router.get("/my-assignments", response_model=list[AssignmentResponse])
 async def my_shift_assignments(
     current_user: Annotated[CurrentUser, Depends(require_role("WORKER"))],
 ):
@@ -47,7 +47,7 @@ async def my_shift_assignments(
     )
 
 
-@router.get("/{shift_id}")
+@router.get("/{shift_id}", response_model=ShiftResponse)
 async def get_shift(
     shift_id: str,
     current_user: Annotated[CurrentUser, Depends(require_role("SUPERVISOR", "ADMIN"))],
@@ -58,7 +58,7 @@ async def get_shift(
     return await shift_service.get_shift(shift_id)
 
 
-@router.put("/{shift_id}")
+@router.put("/{shift_id}", response_model=ShiftResponse)
 async def update_shift(
     shift_id: str,
     body: ShiftUpdate,
@@ -79,7 +79,7 @@ async def delete_shift(
     await shift_service.delete_shift(shift_id)
 
 
-@router.post("/{shift_id}/assign", status_code=201)
+@router.post("/{shift_id}/assign", status_code=201, response_model=AssignmentResponse)
 async def assign_worker(
     shift_id: str,
     body: AssignWorkerRequest,

@@ -1,6 +1,6 @@
 from typing import Optional
 
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 
 
 class LoginRequest(BaseModel):
@@ -23,3 +23,25 @@ class CurrentUser(BaseModel):
     email: str
     role: str
     profile_id: Optional[str] = None  # Admin.id / Supervisor.id / Worker.id
+
+
+class ProfileResponse(BaseModel):
+    user_id: str
+    email: str
+    role: str
+    profile_id: Optional[str] = None
+    first_name: str
+    last_name: str
+    bio: Optional[str] = None
+    avatar_url: Optional[str] = None
+
+
+class ProfileUpdateRequest(BaseModel):
+    first_name: str = Field(min_length=1, max_length=80)
+    last_name: str = Field(min_length=1, max_length=80)
+    bio: Optional[str] = Field(default=None, max_length=500)
+
+
+class PasswordChangeRequest(BaseModel):
+    current_password: str = Field(min_length=1)
+    new_password: str = Field(min_length=8, max_length=128)

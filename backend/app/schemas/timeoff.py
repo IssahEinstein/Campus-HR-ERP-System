@@ -1,7 +1,9 @@
-from pydantic import BaseModel, field_validator, ConfigDict
 from datetime import datetime
-from typing import Optional
 from enum import Enum
+from typing import Optional
+
+from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic.alias_generators import to_camel
 
 
 class RequestStatus(str, Enum):
@@ -36,16 +38,19 @@ class TimeOffReview(BaseModel):
 
 
 class TimeOffResponse(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(
+        from_attributes=True,
+        alias_generator=to_camel,
+        populate_by_name=True,
+    )
 
     id: str
-    type: RequestType
     status: RequestStatus
     worker_id: str
-    reviewed_by_id: Optional[str]
+    reviewed_by_id: Optional[str] = None
     start_date: datetime
     end_date: datetime
-    reason: Optional[str]
-    approval_notes: Optional[str]
+    reason: Optional[str] = None
+    approval_notes: Optional[str] = None
     created_at: datetime
     updated_at: datetime

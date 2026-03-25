@@ -1,7 +1,9 @@
-from pydantic import BaseModel, ConfigDict
 from datetime import datetime
-from typing import Optional
 from enum import Enum
+from typing import Optional
+
+from pydantic import BaseModel, ConfigDict
+from pydantic.alias_generators import to_camel
 
 
 class RequestStatus(str, Enum):
@@ -24,15 +26,19 @@ class ShiftSwapReview(BaseModel):
 
 
 class ShiftSwapResponse(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(
+        from_attributes=True,
+        alias_generator=to_camel,
+        populate_by_name=True,
+    )
 
     id: str
     initiated_by_id: str
     target_worker_id: str
-    from_assignment_id: Optional[str]
-    to_assignment_id: Optional[str]
-    reviewed_by_id: Optional[str]
+    from_assignment_id: Optional[str] = None
+    to_assignment_id: Optional[str] = None
+    reviewed_by_id: Optional[str] = None
     status: RequestStatus
-    reason: Optional[str]
-    approval_notes: Optional[str]
+    reason: Optional[str] = None
+    approval_notes: Optional[str] = None
     created_at: datetime

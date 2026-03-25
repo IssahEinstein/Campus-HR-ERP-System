@@ -20,6 +20,12 @@ class Settings(BaseSettings):
     SMTP_USER: str = ""
     SMTP_PASSWORD: str = ""
     SMTP_FROM: str = ""
+    SMTP_DEBUG: bool = False
+    SMTP_MAX_RETRIES: int = 2
+    SMTP_RETRY_DELAY_SECONDS: float = 1.5
+
+    # One-time admin bootstrap
+    ADMIN_BOOTSTRAP_KEY: str = ""
 
     # Frontend (used in invite links)
     FRONTEND_URL: str = "http://localhost:5173"

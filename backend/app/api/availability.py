@@ -5,13 +5,13 @@ from fastapi import APIRouter, Depends
 from app.auth.authorization import ensure_supervisor_owns_worker
 from app.auth.dependencies import require_role
 from app.schemas.auth import CurrentUser
-from app.schemas.availability import AvailabilityCreate, AvailabilityUpdate
+from app.schemas.availability import AvailabilityCreate, AvailabilityResponse, AvailabilityUpdate
 from app.services import availability_service
 
 router = APIRouter(prefix="/availability", tags=["Availability"])
 
 
-@router.post("", status_code=201)
+@router.post("", status_code=201, response_model=AvailabilityResponse)
 async def set_availability(
     body: AvailabilityCreate,
     current_user: Annotated[CurrentUser, Depends(require_role("WORKER"))],
@@ -20,7 +20,7 @@ async def set_availability(
     return await availability_service.set_availability(body, worker_id=current_user.profile_id)
 
 
-@router.get("/my")
+@router.get("/my", response_model=list[AvailabilityResponse])
 async def my_availability(
     current_user: Annotated[CurrentUser, Depends(require_role("WORKER"))],
 ):
@@ -30,7 +30,7 @@ async def my_availability(
     )
 
 
-@router.get("/worker/{worker_id}")
+@router.get("/worker/{worker_id}", response_model=list[AvailabilityResponse])
 async def worker_availability(
     worker_id: str,
     current_user: Annotated[CurrentUser, Depends(require_role("SUPERVISOR", "ADMIN"))],
@@ -44,7 +44,7 @@ async def worker_availability(
     return await availability_service.list_availability_for_worker(worker_id)
 
 
-@router.put("/{availability_id}")
+@router.put("/{availability_id}", response_model=AvailabilityResponse)
 async def update_availability(
     availability_id: str,
     body: AvailabilityUpdate,

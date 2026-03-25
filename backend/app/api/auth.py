@@ -1,9 +1,18 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Cookie, Response, Depends
+from fastapi import APIRouter, Cookie, Response, Depends, File, UploadFile
 from fastapi.security import HTTPBearer
 
-from app.schemas.auth import LoginRequest, TokenResponse, RefreshResponse, CurrentUser
+from app.schemas.auth import (
+    LoginRequest,
+    TokenResponse,
+    RefreshResponse,
+    CurrentUser,
+    ProfileResponse,
+    ProfileUpdateRequest,
+    PasswordChangeRequest,
+)
+from app.schemas.common import MessageResponse
 from app.services import auth_service
 from app.auth.dependencies import get_current_user
 
@@ -91,3 +100,60 @@ async def logout_all(
 async def me(current_user: Annotated[CurrentUser, Depends(get_current_user)]) -> CurrentUser:
     """Return the identity encoded in the access token."""
     return current_user
+
+
+@router.get("/profile", response_model=ProfileResponse)
+async def get_profile(current_user: Annotated[CurrentUser, Depends(get_current_user)]) -> ProfileResponse:
+    """Return editable profile fields for the signed-in user."""
+    return await auth_service.get_profile(current_user)
+
+
+@router.put("/profile", response_model=ProfileResponse)
+async def update_profile(
+    body: ProfileUpdateRequest,
+    current_user: Annotated[CurrentUser, Depends(get_current_user)],
+) -> ProfileResponse:
+    """Update first name, last name, and optional profile description."""
+    return await auth_service.update_profile(
+        current_user=current_user,
+        first_name=body.first_name,
+        last_name=body.last_name,
+        bio=body.bio,
+    )
+
+
+@router.post("/change-password", response_model=MessageResponse)
+async def change_password(
+    body: PasswordChangeRequest,
+    current_user: Annotated[CurrentUser, Depends(get_current_user)],
+) -> MessageResponse:
+    """Change the signed-in user's password."""
+    await auth_service.change_password(
+        current_user=current_user,
+        current_password=body.current_password,
+        new_password=body.new_password,
+    )
+    return MessageResponse(message="Password updated successfully")
+
+
+@router.post("/avatar", response_model=ProfileResponse)
+async def upload_avatar(
+    current_user: Annotated[CurrentUser, Depends(get_current_user)],
+    file: UploadFile = File(...),
+) -> ProfileResponse:
+    """Upload and set a new avatar image for the signed-in user."""
+    content = await file.read()
+    return await auth_service.update_avatar(
+        current_user=current_user,
+        filename=file.filename or "avatar.png",
+        content=content,
+        content_type=file.content_type,
+    )
+
+
+@router.delete("/avatar", response_model=ProfileResponse)
+async def delete_avatar(
+    current_user: Annotated[CurrentUser, Depends(get_current_user)],
+) -> ProfileResponse:
+    """Remove the signed-in user's avatar and fall back to initials."""
+    return await auth_service.remove_avatar(current_user)

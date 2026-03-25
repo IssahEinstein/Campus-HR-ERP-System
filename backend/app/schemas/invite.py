@@ -1,6 +1,14 @@
 from pydantic import BaseModel, EmailStr
 
 
+class BootstrapAdminRequest(BaseModel):
+    email: EmailStr
+    password: str
+    first_name: str
+    last_name: str
+    admin_id: str
+
+
 class InviteSupervisorRequest(BaseModel):
     email: EmailStr
     first_name: str
@@ -15,6 +23,7 @@ class InviteWorkerRequest(BaseModel):
     last_name: str
     worker_id: str       # Human-readable 800 number
     student_id: str
+    role: str = "WORKER"
 
 
 class AcceptInviteRequest(BaseModel):
