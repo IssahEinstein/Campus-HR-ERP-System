@@ -7,6 +7,7 @@ from app.core.logging_config import logger
 from app.db import connect_db, disconnect_db
 
 # ── Routers ────────────────────────────────────────────────────────────────────
+from app.api.auth import router as auth_router
 from app.api.shifts import router as shifts_router
 from app.api.attendance import router as attendance_router
 from app.api.timeoff import router as timeoff_router
@@ -31,6 +32,7 @@ app.add_middleware(
 )
 
 # ── Routers ────────────────────────────────────────────────────────────────────
+app.include_router(auth_router,        prefix="/api", tags=["Auth"])
 app.include_router(shifts_router,      prefix="/api", tags=["Shifts"])
 app.include_router(attendance_router,  prefix="/api", tags=["Attendance"])
 app.include_router(timeoff_router,     prefix="/api", tags=["Time-Off"])
