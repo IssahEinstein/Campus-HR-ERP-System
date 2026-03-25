@@ -1,12 +1,12 @@
-📘 Campus Job ERP — Backend (FastAPI + Prisma + Supabase)
+Campus Job ERP — Backend (FastAPI + Prisma + Supabase)
 
 A full‑stack HR + Scheduling + Payroll system designed for university student employment. This backend powers authentication, supervisor workflows, worker operations, scheduling, payroll, and performance feedback using FastAPI, Prisma, and Supabase PostgreSQL.
 
 ---
 
-🚀 Features
+ Features
 
-🔐 Authentication & Security
+ Authentication & Security
 
 • JWT‑based auth (30‑min access tokens, 7‑day refresh tokens)
 • HttpOnly refresh cookies for secure session management
@@ -14,7 +14,7 @@ A full‑stack HR + Scheduling + Payroll system designed for university student 
 • Role‑based authorization (Supervisor vs Worker)
 
 
-👥 HR & User Management
+ HR & User Management
 
 • Supervisor onboarding
 • Worker pre‑registration (invitation system)
@@ -22,7 +22,7 @@ A full‑stack HR + Scheduling + Payroll system designed for university student 
 • Department + role assignments
 
 
-📅 Scheduling & Shifts
+ Scheduling & Shifts
 
 • Supervisor shift creation and assignment
 • Worker shift views (upcoming, completed)
@@ -30,7 +30,7 @@ A full‑stack HR + Scheduling + Payroll system designed for university student 
 • Conflict‑free scheduling logic
 
 
-📝 Requests & Approvals
+ Requests & Approvals
 
 • Time‑off requests
 • Shift‑swap requests
@@ -38,7 +38,7 @@ A full‑stack HR + Scheduling + Payroll system designed for university student 
 • Notes + audit trail
 
 
-💵 Payroll (Mocked)
+ Payroll (Mocked)
 
 • Hour tracking
 • Pay stub generation
@@ -46,7 +46,7 @@ A full‑stack HR + Scheduling + Payroll system designed for university student 
 • PDF export endpoint (optional)
 
 
-⭐ Performance & Feedback
+ Performance & Feedback
 
 • Supervisor feedback submissions
 • Worker feedback history
@@ -54,40 +54,50 @@ A full‑stack HR + Scheduling + Payroll system designed for university student 
 
 ---
 
-🏗️ Tech Stack
+ Tech Stack
 
 Layer	Technology	
 Backend Framework	FastAPI	
 ORM	Prisma (prisma-client-py)	
 Database	Supabase PostgreSQL	
 Auth	JWT + HttpOnly Cookies	
-Testing	Postman	
-Frontend	React (separate repo)	
+Testing	pytest (77+ unit tests)	
+Frontend	React + Vite + Tailwind (frontend/)	
 
 
 ---
 
-📂 Project Structure
+ Project Structure
 
 backend/
 ├── app/
-│   ├── api/
-│   ├── auth/
-│   ├── models/
-│   ├── schemas/
-│   ├── services/
-│   ├── utils/
+│   ├── api/          # HTTP route handlers (11 modules)
+│   ├── auth/         # JWT tokens, password hashing, RBAC guards
+│   ├── core/         # Config, logging
+│   ├── exceptions/   # Custom exception handlers
+│   ├── repositories/ # DB access layer (invites, session, user)
+│   ├── schemas/      # Pydantic request/response models
+│   ├── services/     # Business logic (11 modules)
+│   ├── utils/        # Shared utilities, dependencies
 │   └── main.py
 ├── prisma/
 │   └── schema.prisma
+├── tests/            # pytest suite (77+ tests)
+├── seed.py           # Database seeding script
 ├── .env
 ├── requirements.txt
-└── README.md
+frontend/
+├── src/
+│   ├── api/          # Axios API clients per module
+│   ├── components/   # Navbar, modals, PrivateRoute
+│   ├── context/      # AuthContext
+│   └── pages/        # Login, Admin, Supervisor, Worker pages
+└── package.json
 
 
 ---
 
-🗄️ Database Schema (Prisma)
+ Database Schema (Prisma)
 
 The system includes models for:
 
@@ -104,52 +114,56 @@ Each model includes timestamps, relations, and business‑logic fields (e.g., st
 
 ---
 
-🔌 API Overview
+ API Overview
 
 Authentication
 
-Method	Endpoint	Description	
-POST	/api/auth/supervisor/signup	Create supervisor account	
-POST	/api/auth/worker/signup	Worker signup (requires invitation)	
-POST	/api/auth/login	Login for both roles	
-POST	/api/auth/logout	Logout + invalidate refresh token	
-POST	/api/auth/refresh	Refresh access token	
-GET	/api/auth/me	Get current user	
+Method	Endpoint	Description
+POST	/api/auth/supervisor/signup	Create supervisor account
+POST	/api/auth/worker/signup	Worker signup (requires invitation)
+POST	/api/auth/activate	Activate account from invite link
+POST	/api/auth/login	Login for both roles
+POST	/api/auth/logout	Logout + invalidate refresh token
+POST	/api/auth/refresh	Refresh access token
+GET	/api/auth/me	Get current user
 
 
-Supervisor
+Workforce Modules
 
-• Invite workers
-• Manage workers
-• Create/edit shifts
-• Approve/deny requests
-• Submit feedback
-
-
-Worker
-
-• View shifts
-• Check in/out
-• Submit requests
-• Manage availability
-• View pay stubs
-• View feedback
+Module	Base Path
+Shifts	/api/shifts
+Attendance	/api/attendance
+Time-Off	/api/time-off
+Payroll	/api/payroll
+Availability	/api/availability
+Shift Swap	/api/shiftswaps
+Feedback	/api/feedback
+Invites	/api/invites
+Supervisors	/api/supervisors
+Admin	/api/admin
 
 
-Full endpoint list is available in the Backend Integration Guide.
+Full endpoint list is available at http://localhost:8000/docs (Swagger UI) when the server is running.
 
 ---
 
-🧪 Testing (Postman)
+🧪 Testing
 
-A full Postman collection is included with folders for:
+The project uses pytest with pytest-asyncio for unit testing.
 
-• Auth
-• Supervisor actions
-• Worker actions
+Run the full test suite:
 
+pytest
 
-Each request includes tests for status codes and token handling.
+Test coverage includes:
+
+• Auth flows (test_auth.py)
+• RBAC and role guards (test_rbac.py)
+• JWT token handling (test_tokens.py)
+• Bootstrap and admin invite flows (test_bootstrap.py, test_admin_invites.py)
+• All 6 workforce modules — shifts, attendance, time-off, payroll, availability, shift swap
+
+77+ tests, 0 warnings.
 
 ---
 
@@ -157,7 +171,8 @@ Each request includes tests for status codes and token handling.
 
 Create a .env file:
 
-DATABASE_URL=postgresql://user:password@db.supabase.co:5432/postgres
+DATABASE_URL=postgresql://user:password@db.supabase.co:5432/postgres?pgbouncer=true
+DIRECT_URL=postgresql://user:password@db.supabase.co:5432/postgres
 
 JWT_SECRET=your-secret
 JWT_ACCESS_TOKEN_EXPIRE_MINUTES=30
@@ -245,11 +260,11 @@ MIT License
 
 🧭 Roadmap
 
-• Admin dashboard
 • Analytics + reporting
-• Mobile worker check‑in
+• Mobile worker check-in
 • Supervisor scheduling calendar
 • Payroll PDF generation
+• Multi-department supervisor assignments
 
 
 ---
@@ -275,7 +290,7 @@ The backend exposes a REST API that supports three primary user groups:
 
 • Supervisors — manage workers, create shifts, approve requests, and provide performance feedback.
 • Workers — view schedules, track hours, submit requests, and access pay information.
-• Administrators (future module) — oversee departments, staffing, and analytics.
+• Administrators — oversee departments, staffing, and system configuration.
 
 
 The service implements role‑based access control, secure session management, and a structured workflow for invitations, onboarding, scheduling, and approvals.
@@ -291,7 +306,7 @@ The service implements role‑based access control, secure session management, a
 • Supabase PostgreSQL — relational database
 • JWT Authentication — access + refresh token model
 • HttpOnly Cookies — secure refresh token storage
-• Postman — API testing and validation
+• pytest + pytest-asyncio — unit testing (77+ tests)
 
 
 2.2 High-Level Architecture
@@ -479,17 +494,21 @@ http://localhost:8000
 
 9. Testing & Quality Assurance
 
-A Postman collection is included for:
+The project uses pytest with pytest-asyncio. Run with:
 
-• Authentication flows
-• Supervisor operations
-• Worker operations
-• Shift workflows
-• Request approvals
-• Payroll and feedback endpoints
+pytest
 
+Test files:
 
-Tests validate status codes, token handling, and response structure.
+• test_auth.py — authentication flows
+• test_rbac.py — role-based access control
+• test_tokens.py — JWT token handling
+• test_bootstrap.py — admin bootstrap flow
+• test_admin_invites.py — invite lifecycle
+• test_shift_service.py, test_attendance_service.py, test_timeoff_service.py
+• test_payroll_service.py, test_availability_service.py, test_shiftswap_service.py
+
+77+ tests passing, 0 warnings.
 
 ---
 
@@ -515,12 +534,11 @@ Tests validate status codes, token handling, and response structure.
 
 Planned enhancements include:
 
-• Administrative dashboards
-• Department‑level analytics
+• Department-level analytics
 • Advanced scheduling tools
-• Mobile‑optimized worker check‑in
+• Mobile-optimized worker check-in
 • Automated payroll PDF generation
-• Multi‑department supervisor assignments
+• Multi-department supervisor assignments
 
 
 ---
