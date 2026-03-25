@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, timezone
-from typing import Any
+from typing import Any, Optional
 
 from jose import JWTError, ExpiredSignatureError, jwt
 
@@ -7,13 +7,14 @@ from app.core.config import settings
 from app.exceptions import InvalidToken, TokenExpired
 
 
-def create_access_token(subject: str, role: str, email: str) -> str:
+def create_access_token(subject: str, role: str, email: str, profile_id: Optional[str] = None) -> str:
     """Create a short-lived JWT access token."""
     expires = datetime.now(timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     payload: dict[str, Any] = {
         "sub": subject,
         "role": role,
         "email": email,
+        "profile_id": profile_id,
         "exp": expires,
         "type": "access",
     }

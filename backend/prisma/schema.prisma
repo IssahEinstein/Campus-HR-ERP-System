@@ -78,12 +78,25 @@ model User {
   workerProfile     Worker?
   adminProfile      Admin?
   sessions          Session[]
+  supervisorInvite  SupervisorInvite?
 
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
   @@index([email])
   @@index([role])
+}
+
+model SupervisorInvite {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([expiresAt])
 }
 
 model Session {

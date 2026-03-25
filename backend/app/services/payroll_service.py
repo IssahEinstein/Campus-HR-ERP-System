@@ -1,7 +1,10 @@
 from fastapi import HTTPException
 
-from app.db import db
+from app.db import get_db
 from app.schemas.payroll import PayrollGenerate, PayStubStatusUpdate
+
+
+db = get_db()
 
 
 async def generate_paystub(data: PayrollGenerate, supervisor_id: str):

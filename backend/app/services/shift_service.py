@@ -2,8 +2,11 @@ from datetime import datetime
 from typing import Optional
 from fastapi import HTTPException
 
-from app.db import db
+from app.db import get_db
 from app.schemas.shift import ShiftCreate, ShiftUpdate
+
+
+db = get_db()
 
 
 async def create_shift(data: ShiftCreate, supervisor_id: str):

@@ -1,7 +1,10 @@
 from fastapi import HTTPException
 
-from app.db import db
+from app.db import get_db
 from app.schemas.shiftswap import ShiftSwapCreate, ShiftSwapReview
+
+
+db = get_db()
 
 
 async def submit_swap_request(data: ShiftSwapCreate, worker_id: str):

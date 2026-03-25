@@ -1,7 +1,10 @@
 from fastapi import HTTPException
 
-from app.db import db
+from app.db import get_db
 from app.schemas.timeoff import TimeOffCreate, TimeOffReview
+
+
+db = get_db()
 
 
 async def submit_request(data: TimeOffCreate, worker_id: str):

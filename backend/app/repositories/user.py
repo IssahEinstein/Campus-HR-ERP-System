@@ -1,6 +1,9 @@
 from typing import Optional
 
-from app.db import db
+from app.db import get_db
+
+
+db = get_db()
 
 
 async def get_user_by_email(email: str) -> Optional[dict]:

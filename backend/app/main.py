@@ -8,6 +8,9 @@ from app.db import connect_db, disconnect_db
 
 # ── Routers ────────────────────────────────────────────────────────────────────
 from app.api.auth import router as auth_router
+from app.api.admin import router as admin_router
+from app.api.supervisors import router as supervisors_router
+from app.api.invites import router as invites_router
 from app.api.shifts import router as shifts_router
 from app.api.attendance import router as attendance_router
 from app.api.timeoff import router as timeoff_router
@@ -33,6 +36,9 @@ app.add_middleware(
 
 # ── Routers ────────────────────────────────────────────────────────────────────
 app.include_router(auth_router,        prefix="/api", tags=["Auth"])
+app.include_router(admin_router,       prefix="/api", tags=["Admin"])
+app.include_router(supervisors_router, prefix="/api", tags=["Supervisor"])
+app.include_router(invites_router,     prefix="/api", tags=["Invites"])
 app.include_router(shifts_router,      prefix="/api", tags=["Shifts"])
 app.include_router(attendance_router,  prefix="/api", tags=["Attendance"])
 app.include_router(timeoff_router,     prefix="/api", tags=["Time-Off"])

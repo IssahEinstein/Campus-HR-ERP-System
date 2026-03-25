@@ -1,3 +1,5 @@
+from typing import Optional
+
 from pydantic import BaseModel, EmailStr
 
 
@@ -20,3 +22,4 @@ class CurrentUser(BaseModel):
     user_id: str
     email: str
     role: str
+    profile_id: Optional[str] = None  # Admin.id / Supervisor.id / Worker.id

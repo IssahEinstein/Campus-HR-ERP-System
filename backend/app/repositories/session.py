@@ -1,8 +1,11 @@
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
-from app.db import db
+from app.db import get_db
 from app.core.config import settings
+
+
+db = get_db()
 
 
 async def create_session(user_id: str, device_id: str, refresh_token_hash: str) -> dict:

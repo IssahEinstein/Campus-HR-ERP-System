@@ -2,8 +2,11 @@ from datetime import datetime, timezone
 from typing import Optional
 from fastapi import HTTPException
 
-from app.db import db
+from app.db import get_db
 from app.schemas.attendance import CheckInRequest
+
+
+db = get_db()
 
 
 async def check_in(data: CheckInRequest, worker_id: str):

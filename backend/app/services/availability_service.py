@@ -1,7 +1,10 @@
 from fastapi import HTTPException
 
-from app.db import db
+from app.db import get_db
 from app.schemas.availability import AvailabilityCreate, AvailabilityUpdate
+
+
+db = get_db()
 
 
 async def set_availability(data: AvailabilityCreate, worker_id: str):

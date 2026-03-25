@@ -23,6 +23,7 @@ async def get_current_user(
         user_id=payload["sub"],
         email=payload["email"],
         role=payload["role"],
+        profile_id=payload.get("profile_id"),
     )
 
 

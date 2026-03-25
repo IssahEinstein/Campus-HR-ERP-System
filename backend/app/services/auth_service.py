@@ -2,16 +2,38 @@ import hashlib
 import uuid
 
 from app.auth.password import verify_password
-from app.auth.tokens import create_access_token, create_refresh_token, decode_refresh_token
+from app.auth.tokens import (
+    create_access_token,
+    create_refresh_token,
+    decode_refresh_token,
+)
 from app.exceptions import InvalidCredentials, SessionRevoked
 from app.repositories.user import get_user_by_email, get_user_with_profile
-from app.repositories.session import create_session, get_active_session, revoke_session, revoke_all_user_sessions
+from app.repositories.session import (
+    create_session,
+    get_active_session,
+    revoke_session,
+    revoke_all_user_sessions,
+)
 from app.schemas.auth import TokenResponse, RefreshResponse
+from fastapi import HTTPException
 
 
 def _hash_token(token: str) -> str:
     """Store only a SHA-256 hash of the refresh token, not the token itself."""
     return hashlib.sha256(token.encode()).hexdigest()
+
+
+def _extract_profile_id(user) -> str | None:
+    """Return the role-specific profile record ID embedded in the JWT."""
+    role = str(user.role)
+    if "ADMIN" in role and user.adminProfile:
+        return user.adminProfile.id
+    if "SUPERVISOR" in role and user.supervisorProfile:
+        return user.supervisorProfile.id
+    if "WORKER" in role and user.workerProfile:
+        return user.workerProfile.id
+    return None
 
 
 async def login(email: str, password: str, device_id: str | None = None) -> tuple[TokenResponse, str]:
@@ -21,16 +43,29 @@ async def login(email: str, password: str, device_id: str | None = None) -> tupl
     device_id identifies the device/browser for per-device session management.
     """
     user = await get_user_by_email(email)
-    if user is None or not verify_password(password, user.passwordHash):
+    if user is None:
+        raise InvalidCredentials()
+
+    if user.passwordHash == "INVITE_PENDING":
+        raise HTTPException(
+            status_code=403,
+            detail="Account not yet activated. Please accept your invite email first.",
+        )
+
+    if not verify_password(password, user.passwordHash):
         raise InvalidCredentials()
 
     if device_id is None:
         device_id = str(uuid.uuid4())
 
+    user_full = await get_user_with_profile(user.id)
+    profile_id = _extract_profile_id(user_full) if user_full else None
+
     access_token = create_access_token(
         subject=user.id,
         role=user.role,
         email=user.email,
+        profile_id=profile_id,
     )
     refresh_token = create_refresh_token(subject=user.id, device_id=device_id)
 
@@ -66,10 +101,13 @@ async def refresh(refresh_token: str) -> RefreshResponse:
     if user is None:
         raise SessionRevoked()
 
+    profile_id = _extract_profile_id(user)
+
     access_token = create_access_token(
         subject=user.id,
         role=user.role,
         email=user.email,
+        profile_id=profile_id,
     )
     return RefreshResponse(access_token=access_token)
 
