@@ -1,121 +1,206 @@
 import { useEffect, useState } from "react";
+import {
+  Calendar,
+  RefreshCw,
+  Clock,
+  CheckCircle,
+  XCircle,
+  FileText,
+  Link as LinkIcon,
+} from "lucide-react";
 import { Link } from "react-router-dom";
-import { Clock, ArrowLeftRight, CalendarX } from "lucide-react";
 import * as timeoffApi from "../../api/timeoff";
 import * as shiftswapApi from "../../api/shiftswap";
 
-const filters = ["ALL", "PENDING", "APPROVED", "DENIED"];
+const TYPE_META = {
+  TIMEOFF: {
+    label: "Time Off",
+    iconBg: "bg-green-50",
+    iconColor: "text-green-600",
+    Icon: Calendar,
+    borderColor: "border-green-200",
+  },
+  SWAP: {
+    label: "Shift Swap",
+    iconBg: "bg-blue-50",
+    iconColor: "text-blue-600",
+    Icon: RefreshCw,
+    borderColor: "border-blue-200",
+  },
+  AVAILABILITY: {
+    label: "Availability",
+    iconBg: "bg-purple-50",
+    iconColor: "text-purple-600",
+    Icon: Clock,
+    borderColor: "border-purple-200",
+  },
+};
+
+const STATUS_META = {
+  APPROVED: {
+    label: "Approved",
+    className: "bg-green-50 text-green-700",
+    Icon: CheckCircle,
+    notesBg: "bg-green-50 border-green-100",
+    notesText: "text-green-800",
+  },
+  PENDING: {
+    label: "Pending",
+    className: "bg-yellow-50 text-yellow-700",
+    Icon: Clock,
+    notesBg: "bg-yellow-50 border-yellow-100",
+    notesText: "text-yellow-800",
+  },
+  DENIED: {
+    label: "Denied",
+    className: "bg-red-50 text-red-700",
+    Icon: XCircle,
+    notesBg: "bg-red-50 border-red-100",
+    notesText: "text-red-800",
+  },
+};
+
+const fmtDate = (iso) =>
+  iso
+    ? new Date(iso).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      })
+    : "—";
 
 export default function WorkerRequests() {
-  const [requests,  setRequests]  = useState([]);
-  const [filter,    setFilter]    = useState("ALL");
-  const [loading,   setLoading]   = useState(true);
-  const [cancelling, setCancelling] = useState(null);
+  const [timeoffs, setTimeoffs] = useState([]);
+  const [swaps, setSwaps] = useState([]);
+  const [filter, setFilter] = useState("ALL");
+  const [loading, setLoading] = useState(true);
 
-  const load = async () => {
-    setLoading(true);
-    try {
-      const [timeOffs, swaps] = await Promise.all([
-        timeoffApi.myTimeOff(),
-        shiftswapApi.mySwaps(),
-      ]);
-      const combined = [
-        ...timeOffs.map((r) => ({ ...r, _type: "TIMEOFF" })),
-        ...swaps.map((r)    => ({ ...r, _type: "SWAP" })),
-      ].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-      setRequests(combined);
-    } catch (e) {
-      console.error(e);
-    } finally {
+  useEffect(() => {
+    Promise.all([
+      timeoffApi.myTimeOff().catch(() => []),
+      shiftswapApi.mySwaps().catch(() => []),
+    ]).then(([to, sw]) => {
+      setTimeoffs(to.map((r) => ({ ...r, _type: "TIMEOFF" })));
+      setSwaps(sw.map((r) => ({ ...r, _type: "SWAP" })));
       setLoading(false);
-    }
-  };
+    });
+  }, []);
 
-  useEffect(() => { load(); }, []);
-
-  const handleCancel = async (req) => {
-    setCancelling(req.id);
-    try {
-      if (req._type === "TIMEOFF") await timeoffApi.cancelTimeOff(req.id);
-      else                          await shiftswapApi.cancelSwap(req.id);
-      await load();
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setCancelling(null);
-    }
-  };
-
-  const visible = requests.filter((r) =>
-    filter === "ALL" ? true :
-    filter === "APPROVED" ? (r.status === "APPROVED" || r.status === "ACCEPTED") :
-    filter === "DENIED"   ? (r.status === "DENIED"   || r.status === "REJECTED") :
-    r.status === filter
+  const combined = [...timeoffs, ...swaps].sort(
+    (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
   );
 
-  const fmt = (iso) => new Date(iso).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
+  const filtered =
+    filter === "ALL" ? combined : combined.filter((r) => r.status === filter);
 
-  if (loading) return <div className="flex items-center justify-center h-64 text-gray-400">Loading…</div>;
+  const handleCancel = async (req) => {
+    if (!window.confirm("Cancel this request?")) return;
+    try {
+      if (req._type === "TIMEOFF") {
+        await timeoffApi.cancelTimeOff(req.id);
+        setTimeoffs((prev) => prev.filter((r) => r.id !== req.id));
+      } else {
+        await shiftswapApi.cancelSwap(req.id);
+        setSwaps((prev) => prev.filter((r) => r.id !== req.id));
+      }
+    } catch {
+      alert("Could not cancel. Please try again.");
+    }
+  };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-light mb-2">
-          <span className="font-medium" style={{ color: "#00523E" }}>My Requests</span>
+          <span className="font-medium" style={{ color: "#00523E" }}>
+            My Requests
+          </span>
         </h1>
-        <p className="text-gray-600">Track your time-off and shift-swap requests.</p>
+        <p className="text-gray-600">
+          Submit new requests or track the status of existing ones.
+        </p>
       </div>
 
-      {/* Quick actions */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+      {/* Quick Action Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
         <Link
           to="/worker/request-time-off"
-          className="flex items-center gap-3 bg-white border border-gray-200 rounded-xl p-4 hover:shadow transition-shadow cursor-pointer"
+          className="rounded-2xl border p-5 flex items-center gap-4 hover:shadow-md transition-all group"
+          style={{
+            background:
+              "linear-gradient(160deg, rgba(255,255,255,0.78) 0%, rgba(242,250,245,0.88) 100%)",
+            backdropFilter: "blur(18px)",
+            WebkitBackdropFilter: "blur(18px)",
+            border: "1px solid rgba(0,82,62,0.11)",
+            boxShadow:
+              "0 8px 40px rgba(0,82,62,0.09), inset 0 1px 0 rgba(255,255,255,0.95)",
+          }}
         >
-          <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: "#e6f0ec" }}>
-            <CalendarX size={18} style={{ color: "#00523E" }} />
+          <div className="p-3 rounded-lg bg-green-50 group-hover:bg-green-100 transition-colors">
+            <Calendar size={22} className="text-green-600" />
           </div>
           <div>
-            <div className="font-medium">Request Time Off</div>
-            <div className="text-sm text-gray-500">Submit a new time-off request</div>
+            <p className="font-medium text-gray-900">Request Time Off</p>
+            <p className="text-sm text-gray-500">Submit a leave request</p>
           </div>
         </Link>
+
         <Link
           to="/worker/shift-swap"
-          className="flex items-center gap-3 bg-white border border-gray-200 rounded-xl p-4 hover:shadow transition-shadow cursor-pointer"
+          className="rounded-2xl border p-5 flex items-center gap-4 hover:shadow-md transition-all group"
+          style={{
+            background:
+              "linear-gradient(160deg, rgba(255,255,255,0.78) 0%, rgba(242,250,245,0.88) 100%)",
+            backdropFilter: "blur(18px)",
+            WebkitBackdropFilter: "blur(18px)",
+            border: "1px solid rgba(0,82,62,0.11)",
+            boxShadow:
+              "0 8px 40px rgba(0,82,62,0.09), inset 0 1px 0 rgba(255,255,255,0.95)",
+          }}
         >
-          <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: "#e6f0ec" }}>
-            <ArrowLeftRight size={18} style={{ color: "#00523E" }} />
+          <div className="p-3 rounded-lg bg-blue-50 group-hover:bg-blue-100 transition-colors">
+            <RefreshCw size={22} className="text-blue-600" />
           </div>
           <div>
-            <div className="font-medium">Swap Shift</div>
-            <div className="text-sm text-gray-500">Request a shift swap</div>
+            <p className="font-medium text-gray-900">Swap Shift</p>
+            <p className="text-sm text-gray-500">Request a shift swap</p>
           </div>
         </Link>
+
         <Link
           to="/worker/update-availability"
-          className="flex items-center gap-3 bg-white border border-gray-200 rounded-xl p-4 hover:shadow transition-shadow cursor-pointer"
+          className="rounded-2xl border p-5 flex items-center gap-4 hover:shadow-md transition-all group"
+          style={{
+            background:
+              "linear-gradient(160deg, rgba(255,255,255,0.78) 0%, rgba(242,250,245,0.88) 100%)",
+            backdropFilter: "blur(18px)",
+            WebkitBackdropFilter: "blur(18px)",
+            border: "1px solid rgba(0,82,62,0.11)",
+            boxShadow:
+              "0 8px 40px rgba(0,82,62,0.09), inset 0 1px 0 rgba(255,255,255,0.95)",
+          }}
         >
-          <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: "#e6f0ec" }}>
-            <Clock size={18} style={{ color: "#00523E" }} />
+          <div className="p-3 rounded-lg bg-purple-50 group-hover:bg-purple-100 transition-colors">
+            <Clock size={22} className="text-purple-600" />
           </div>
           <div>
-            <div className="font-medium">Update Availability</div>
-            <div className="text-sm text-gray-500">Set your weekly availability</div>
+            <p className="font-medium text-gray-900">Update Availability</p>
+            <p className="text-sm text-gray-500">Change your schedule</p>
           </div>
         </Link>
       </div>
 
-      {/* Filter buttons */}
+      {/* Filter Buttons */}
       <div className="flex gap-2 mb-6 flex-wrap">
-        {filters.map((f) => (
+        {["ALL", "PENDING", "APPROVED", "DENIED"].map((f) => (
           <button
             key={f}
             onClick={() => setFilter(f)}
-            className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
               filter === f
                 ? "text-white"
-                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                : "bg-white border border-gray-200 text-gray-600 hover:border-gray-300"
             }`}
             style={filter === f ? { backgroundColor: "#00523E" } : {}}
           >
@@ -124,71 +209,144 @@ export default function WorkerRequests() {
         ))}
       </div>
 
-      {/* Requests list */}
-      <div id="requests-list" className="space-y-4 scroll-mt-24">
-        {visible.length === 0 ? (
-          <div className="bg-white rounded-xl border border-gray-200 p-12 text-center text-gray-400">
-            No requests found.
-          </div>
-        ) : (
-          visible.map((req) => {
-            const status = req.status;
-            const pending = status === "PENDING";
+      {/* Requests List */}
+      {loading ? (
+        <div className="flex items-center justify-center h-40 text-gray-400">
+          Loading…
+        </div>
+      ) : filtered.length === 0 ? (
+        <div
+          className="rounded-2xl p-12 text-center text-gray-400"
+          style={{
+            background:
+              "linear-gradient(160deg, rgba(255,255,255,0.78) 0%, rgba(242,250,245,0.88) 100%)",
+            backdropFilter: "blur(18px)",
+            WebkitBackdropFilter: "blur(18px)",
+            border: "1px solid rgba(0,82,62,0.11)",
+            boxShadow:
+              "0 8px 40px rgba(0,82,62,0.09), inset 0 1px 0 rgba(255,255,255,0.95)",
+          }}
+        >
+          <FileText size={40} className="mx-auto mb-3 opacity-30" />
+          <p className="font-medium mb-1">No requests found</p>
+          <p className="text-sm">
+            {filter === "ALL"
+              ? "Submit a request using the cards above."
+              : `No ${filter.toLowerCase()} requests.`}
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {filtered.map((req) => {
+            const typeMeta = TYPE_META[req._type] || TYPE_META.TIMEOFF;
+            const statusMeta = STATUS_META[req.status] || STATUS_META.PENDING;
+            const { Icon: TypeIcon } = typeMeta;
+            const { Icon: StatusIcon } = statusMeta;
+
             return (
-              <div key={req.id} className="bg-white rounded-xl border border-gray-200 p-6">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start gap-3">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
-                      req._type === "TIMEOFF" ? "bg-blue-50" : "bg-purple-50"
-                    }`}>
-                      {req._type === "TIMEOFF"
-                        ? <CalendarX size={18} className="text-blue-600" />
-                        : <ArrowLeftRight size={18} className="text-purple-600" />}
-                    </div>
-                    <div>
-                      <div className="font-medium">
-                        {req._type === "TIMEOFF" ? "Time-Off Request" : "Shift Swap Request"}
-                      </div>
-                      {req._type === "TIMEOFF" && (
-                        <div className="text-sm text-gray-500">
-                          {fmt(req.startDate)} – {fmt(req.endDate)}
-                        </div>
-                      )}
-                      {req.reason && (
-                        <div className="text-sm text-gray-500 mt-1">{req.reason}</div>
-                      )}
-                      {req.reviewNotes && (
-                        <div className="text-sm text-gray-500 italic mt-1">Note: {req.reviewNotes}</div>
-                      )}
-                      <div className="text-xs text-gray-400 mt-1">
-                        Submitted {fmt(req.createdAt)}
-                      </div>
-                    </div>
+              <div
+                key={`${req._type}-${req.id}`}
+                className="rounded-2xl p-6 hover:shadow-md transition-shadow"
+                style={{
+                  background:
+                    "linear-gradient(160deg, rgba(255,255,255,0.78) 0%, rgba(242,250,245,0.88) 100%)",
+                  backdropFilter: "blur(18px)",
+                  WebkitBackdropFilter: "blur(18px)",
+                  border: "1px solid rgba(0,82,62,0.11)",
+                  boxShadow:
+                    "0 8px 40px rgba(0,82,62,0.09), inset 0 1px 0 rgba(255,255,255,0.95)",
+                }}
+              >
+                <div className="flex items-start gap-4">
+                  {/* Icon Badge */}
+                  <div
+                    className={`p-3 rounded-xl flex-shrink-0 ${typeMeta.iconBg}`}
+                  >
+                    <TypeIcon size={20} className={typeMeta.iconColor} />
                   </div>
-                  <div className="flex items-center gap-3">
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                      pending                                    ? "bg-yellow-50 text-yellow-700" :
-                      status === "APPROVED" || status === "ACCEPTED" ? "bg-green-50 text-green-700" :
-                      "bg-red-50 text-red-600"
-                    }`}>
-                      {status}
-                    </span>
-                    {pending && (
-                      <button
-                        onClick={() => handleCancel(req)}
-                        disabled={cancelling === req.id}
-                        className="text-sm text-red-500 hover:text-red-700 disabled:opacity-50"
+
+                  {/* Content */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-3 mb-3">
+                      <div>
+                        <h3 className="font-medium text-gray-900">
+                          {typeMeta.label}
+                          {req.reason ? ` — ${req.reason}` : ""}
+                        </h3>
+                        {(req.startDate ||
+                          req.endDate ||
+                          req.requestedDate) && (
+                          <p className="text-sm text-gray-600 mt-0.5">
+                            {req.startDate && req.endDate
+                              ? `${fmtDate(req.startDate)} – ${fmtDate(req.endDate)}`
+                              : req.requestedDate
+                                ? fmtDate(req.requestedDate)
+                                : ""}
+                          </p>
+                        )}
+                      </div>
+                      <span
+                        className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium flex-shrink-0 ${statusMeta.className}`}
                       >
-                        {cancelling === req.id ? "Cancelling…" : "Cancel"}
-                      </button>
+                        <StatusIcon size={12} />
+                        {statusMeta.label}
+                      </span>
+                    </div>
+
+                    <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-gray-500 mb-3">
+                      <span>
+                        Submitted:{" "}
+                        <span className="text-gray-700">
+                          {fmtDate(req.createdAt)}
+                        </span>
+                      </span>
+                      {req.reviewedAt && (
+                        <span>
+                          Reviewed:{" "}
+                          <span className="text-gray-700">
+                            {fmtDate(req.reviewedAt)}
+                          </span>
+                        </span>
+                      )}
+                      {req.reviewedBy && (
+                        <span>
+                          By:{" "}
+                          <span className="text-gray-700">
+                            {req.reviewedBy}
+                          </span>
+                        </span>
+                      )}
+                    </div>
+
+                    {req.notes && (
+                      <div
+                        className={`p-3 rounded-lg border text-xs mt-2 ${statusMeta.notesBg} ${statusMeta.notesText}`}
+                      >
+                        <span className="font-medium">Note: </span>
+                        {req.notes}
+                      </div>
+                    )}
+
+                    {req.status === "PENDING" && (
+                      <div
+                        className="mt-4 pt-3 border-t"
+                        style={{ borderColor: "rgba(0,82,62,0.07)" }}
+                      >
+                        <button
+                          onClick={() => handleCancel(req)}
+                          className="text-sm text-red-500 hover:text-red-700 hover:underline"
+                        >
+                          Cancel Request
+                        </button>
+                      </div>
                     )}
                   </div>
                 </div>
               </div>
             );
-          })
-        )}
-      </div>
+          })}
+        </div>
+      )}
     </div>
   );
 }

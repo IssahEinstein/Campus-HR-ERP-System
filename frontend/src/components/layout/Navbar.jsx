@@ -9,22 +9,22 @@ import * as supervisorsApi from "../../api/supervisors";
 const NAV_LINKS = {
   WORKER: [
     { label: "Dashboard", to: "/worker/dashboard" },
-    { label: "Schedule",  to: "/worker/schedule" },
-    { label: "Payroll",   to: "/worker/payroll" },
-    { label: "Requests",  to: "/worker/requests" },
-    { label: "Feedback",  to: "/worker/feedback" },
-    { label: "Profile",   to: "/worker/profile" },
+    { label: "Schedule", to: "/worker/schedule" },
+    { label: "Payroll", to: "/worker/payroll" },
+    { label: "Requests", to: "/worker/requests" },
+    { label: "Feedback", to: "/worker/feedback" },
+    { label: "Profile", to: "/worker/profile" },
   ],
   SUPERVISOR: [
     { label: "Dashboard", to: "/supervisor/dashboard" },
-    { label: "Team",      to: "/supervisor/team" },
-    { label: "Schedule",  to: "/supervisor/schedule" },
+    { label: "Team", to: "/supervisor/team" },
+    { label: "Schedule", to: "/supervisor/schedule" },
     { label: "Approvals", to: "/supervisor/approvals" },
-    { label: "Profile",   to: "/supervisor/profile" },
+    { label: "Profile", to: "/supervisor/profile" },
   ],
   ADMIN: [
     { label: "Dashboard", to: "/admin/dashboard" },
-    { label: "Profile",   to: "/admin/profile" },
+    { label: "Profile", to: "/admin/profile" },
   ],
 };
 
@@ -55,6 +55,7 @@ function NavLink({ to, label }) {
 
 export default function Navbar() {
   const { user, logout } = useAuth();
+  const { pathname: location } = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
@@ -75,7 +76,10 @@ export default function Navbar() {
     const emailInitial = (user?.email ?? "").trim().charAt(0).toUpperCase();
     return emailInitial || "NA";
   }, [user]);
-  const avatarUrl = useMemo(() => resolveAvatarUrl(user?.avatar_url), [user?.avatar_url]);
+  const avatarUrl = useMemo(
+    () => resolveAvatarUrl(user?.avatar_url),
+    [user?.avatar_url],
+  );
   const displayName = useMemo(() => {
     const first = (user?.first_name ?? "").trim();
     const last = (user?.last_name ?? "").trim();
@@ -127,7 +131,9 @@ export default function Navbar() {
             timeoffApi.myTimeOff(),
           ]);
 
-          const pendingRequests = requests.filter((r) => r.status === "PENDING").length;
+          const pendingRequests = requests.filter(
+            (r) => r.status === "PENDING",
+          ).length;
           const items = [];
           const latestFeedbackAt = feedback.reduce((latest, item) => {
             const createdAt = item?.createdAt;
@@ -160,7 +166,9 @@ export default function Navbar() {
             timeoffApi.pendingTimeOff(),
             supervisorsApi.myWorkers(),
           ]);
-          const invitedWorkers = workers.filter((w) => String(w.status).toUpperCase() === "INVITED").length;
+          const invitedWorkers = workers.filter(
+            (w) => String(w.status).toUpperCase() === "INVITED",
+          ).length;
           const items = [];
 
           if (pending.length > 0) {
@@ -184,13 +192,16 @@ export default function Navbar() {
 
         if (user.role === "ADMIN") {
           const pending = await timeoffApi.pendingTimeOff();
-          const items = pending.length > 0
-            ? [{
-              id: `admin-pending-timeoff:${pending.length}`,
-              text: `${pending.length} time-off request${pending.length === 1 ? "" : "s"} pending review`,
-              to: "/admin/dashboard#pending-approvals",
-            }]
-            : [];
+          const items =
+            pending.length > 0
+              ? [
+                  {
+                    id: `admin-pending-timeoff:${pending.length}`,
+                    text: `${pending.length} time-off request${pending.length === 1 ? "" : "s"} pending review`,
+                    to: "/admin/dashboard#pending-approvals",
+                  },
+                ]
+              : [];
 
           if (active) setNotifications(items);
         }
@@ -231,7 +242,10 @@ export default function Navbar() {
 
   const hasNotifications = visibleNotifications.length > 0;
   const hasUnreadNotifications = useMemo(
-    () => visibleNotifications.some((item) => !seenNotificationIds.includes(item.id)),
+    () =>
+      visibleNotifications.some(
+        (item) => !seenNotificationIds.includes(item.id),
+      ),
     [visibleNotifications, seenNotificationIds],
   );
 
@@ -241,7 +255,10 @@ export default function Navbar() {
         <div className="flex items-center justify-between h-16">
           {/* Brand + desktop links */}
           <div className="flex items-center gap-8">
-            <Link to="/" className="text-xl font-light tracking-tight inline-flex items-center">
+            <Link
+              to="/"
+              className="text-xl font-light tracking-tight inline-flex items-center"
+            >
               <span className="ms-brand-mark" aria-hidden="true">
                 <i />
                 <i />
@@ -251,7 +268,9 @@ export default function Navbar() {
               Campus<span className="font-semibold text-slate-800">ERP</span>
             </Link>
             <div className="hidden md:flex items-center gap-3">
-              {links.map((l) => <NavLink key={l.to} {...l} />)}
+              {links.map((l) => (
+                <NavLink key={l.to} {...l} />
+              ))}
             </div>
           </div>
 
@@ -263,20 +282,29 @@ export default function Navbar() {
               aria-label="Toggle notifications"
             >
               <Bell size={20} className="text-gray-600" />
-              {hasUnreadNotifications && <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-[#00523E]" />}
+              {hasUnreadNotifications && (
+                <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-[#00523E]" />
+              )}
             </button>
 
             {notificationsOpen && (
               <div className="absolute right-0 top-12 w-80 sleek-panel rounded-xl z-40 overflow-hidden">
                 <div className="px-4 py-3 border-b border-gray-100">
-                  <h3 className="text-sm font-medium text-gray-800">Notifications</h3>
+                  <h3 className="text-sm font-medium text-gray-800">
+                    Notifications
+                  </h3>
                 </div>
                 <div className="max-h-80 overflow-auto">
                   {notificationsLoading ? (
-                    <div className="px-4 py-4 text-sm text-gray-500">Loading notifications...</div>
+                    <div className="px-4 py-4 text-sm text-gray-500">
+                      Loading notifications...
+                    </div>
                   ) : hasNotifications ? (
                     visibleNotifications.map((item) => (
-                      <div key={item.id} className="px-3 py-2 border-b border-gray-100 last:border-b-0">
+                      <div
+                        key={item.id}
+                        className="px-3 py-2 border-b border-gray-100 last:border-b-0"
+                      >
                         <Link
                           to={item.to}
                           onClick={openNotification}
@@ -287,7 +315,9 @@ export default function Navbar() {
                       </div>
                     ))
                   ) : (
-                    <div className="px-4 py-4 text-sm text-gray-500">No notifications.</div>
+                    <div className="px-4 py-4 text-sm text-gray-500">
+                      No notifications.
+                    </div>
                   )}
                 </div>
               </div>
@@ -310,10 +340,10 @@ export default function Navbar() {
                   </div>
                 )}
                 <div className="text-left">
-                  <p className="text-sm font-medium">
-                    {displayName}
+                  <p className="text-sm font-medium">{displayName}</p>
+                  <p className="text-xs text-gray-500 capitalize">
+                    {user?.role?.toLowerCase()}
                   </p>
-                  <p className="text-xs text-gray-500 capitalize">{user?.role?.toLowerCase()}</p>
                 </div>
               </div>
               <button
@@ -324,7 +354,10 @@ export default function Navbar() {
               </button>
             </div>
 
-            <button className="md:hidden p-2 soft-icon-button liquid-selectable" onClick={() => setMobileOpen((o) => !o)}>
+            <button
+              className="md:hidden p-2 soft-icon-button liquid-selectable"
+              onClick={() => setMobileOpen((o) => !o)}
+            >
               {mobileOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
           </div>
@@ -333,17 +366,25 @@ export default function Navbar() {
         {/* Mobile menu */}
         {mobileOpen && (
           <div className="md:hidden py-4 border-t border-gray-200">
-            <div className="flex flex-col gap-4">
-              {links.map((l) => (
-                <Link
-                  key={l.to}
-                  to={l.to}
-                  onClick={() => setMobileOpen(false)}
-                  className="text-sm text-gray-600 hover:text-gray-900"
-                >
-                  {l.label}
-                </Link>
-              ))}
+            <div className="flex flex-col gap-2">
+              {links.map((l) => {
+                const active = location.startsWith(l.to);
+                return (
+                  <Link
+                    key={l.to}
+                    to={l.to}
+                    onClick={() => setMobileOpen(false)}
+                    className={`text-sm px-4 py-2 rounded-full font-medium ${
+                      active
+                        ? "text-white"
+                        : "text-gray-600 hover:text-gray-900"
+                    }`}
+                    style={active ? { backgroundColor: "#00523E" } : {}}
+                  >
+                    {l.label}
+                  </Link>
+                );
+              })}
               <button
                 onClick={logout}
                 className="text-sm text-gray-600 hover:text-gray-900 text-left pt-2 border-t border-gray-200"

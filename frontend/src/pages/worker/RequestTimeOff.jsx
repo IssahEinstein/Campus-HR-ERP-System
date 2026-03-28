@@ -2,7 +2,13 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import * as timeoffApi from "../../api/timeoff";
 
-const REASONS = ["Vacation", "Sick Leave", "Personal", "Family Emergency", "Other"];
+const REASONS = [
+  "Vacation",
+  "Sick Leave",
+  "Personal",
+  "Family Emergency",
+  "Other",
+];
 
 export default function RequestTimeOff() {
   const navigate = useNavigate();
@@ -13,21 +19,28 @@ export default function RequestTimeOff() {
     notes: "",
   });
   const [submitting, setSubmitting] = useState(false);
-  const [error,      setError]      = useState("");
+  const [error, setError] = useState("");
 
-  const handleChange = (e) => setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
+  const handleChange = (e) =>
+    setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.start_date || !form.end_date) { setError("Please fill in both dates."); return; }
-    if (form.end_date < form.start_date)    { setError("End date must be after start date."); return; }
+    if (!form.start_date || !form.end_date) {
+      setError("Please fill in both dates.");
+      return;
+    }
+    if (form.end_date < form.start_date) {
+      setError("End date must be after start date.");
+      return;
+    }
     setError("");
     setSubmitting(true);
     try {
       await timeoffApi.submitTimeOff({
         start_date: form.start_date,
-        end_date:   form.end_date,
-        reason:     `${form.reason}${form.notes ? ` — ${form.notes}` : ""}`,
+        end_date: form.end_date,
+        reason: `${form.reason}${form.notes ? ` — ${form.notes}` : ""}`,
       });
       navigate("/worker/requests");
     } catch (err) {
@@ -47,15 +60,33 @@ export default function RequestTimeOff() {
           ← Back to Requests
         </button>
         <h1 className="text-3xl font-light mb-2">
-          <span className="font-medium" style={{ color: "#00523E" }}>Request Time Off</span>
+          <span className="font-medium" style={{ color: "#00523E" }}>
+            Request Time Off
+          </span>
         </h1>
-        <p className="text-gray-600">Submit a new time-off request for supervisor review.</p>
+        <p className="text-gray-600">
+          Submit a new time-off request for supervisor review.
+        </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-gray-200 p-6 space-y-6">
+      <form
+        onSubmit={handleSubmit}
+        className="rounded-2xl p-6 space-y-6"
+        style={{
+          background:
+            "linear-gradient(160deg, rgba(255,255,255,0.78) 0%, rgba(242,250,245,0.88) 100%)",
+          backdropFilter: "blur(18px)",
+          WebkitBackdropFilter: "blur(18px)",
+          border: "1px solid rgba(0,82,62,0.11)",
+          boxShadow:
+            "0 8px 40px rgba(0,82,62,0.09), inset 0 1px 0 rgba(255,255,255,0.95)",
+        }}
+      >
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Start Date
+            </label>
             <input
               type="date"
               name="start_date"
@@ -67,7 +98,9 @@ export default function RequestTimeOff() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              End Date
+            </label>
             <input
               type="date"
               name="end_date"
@@ -81,19 +114,25 @@ export default function RequestTimeOff() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Reason</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Reason
+          </label>
           <select
             name="reason"
             value={form.reason}
             onChange={handleChange}
             className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2"
           >
-            {REASONS.map((r) => <option key={r}>{r}</option>)}
+            {REASONS.map((r) => (
+              <option key={r}>{r}</option>
+            ))}
           </select>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Additional Notes (optional)</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Additional Notes (optional)
+          </label>
           <textarea
             name="notes"
             value={form.notes}
@@ -105,7 +144,9 @@ export default function RequestTimeOff() {
         </div>
 
         {error && (
-          <div className="bg-red-50 text-red-600 text-sm p-3 rounded-lg">{error}</div>
+          <div className="bg-red-50 text-red-600 text-sm p-3 rounded-lg">
+            {error}
+          </div>
         )}
 
         <div className="flex gap-3 justify-end">

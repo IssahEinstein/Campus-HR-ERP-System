@@ -5,6 +5,7 @@ const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const client = axios.create({
   baseURL: `${BASE_URL}/api`,
   withCredentials: true, // needed for refresh token cookie
+  timeout: 10000, // 10 s — prevents the app from hanging indefinitely
 });
 
 // Attach JWT on every request
@@ -33,13 +34,16 @@ client.interceptors.response.use(
       original._retry = true;
       try {
         if (!refreshing) {
-          refreshing = client.post("/auth/refresh").finally(() => { refreshing = null; });
+          refreshing = client.post("/auth/refresh").finally(() => {
+            refreshing = null;
+          });
         }
         const { data } = await refreshing;
         localStorage.setItem("access_token", data.access_token);
         original.headers.Authorization = `Bearer ${data.access_token}`;
         return client(original);
       } catch {
+        refreshing = null;
         localStorage.removeItem("access_token");
         window.location.href = "/login";
       }

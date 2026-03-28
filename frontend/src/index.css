@@ -11,10 +11,14 @@
   --ms-green: #107c10;
   --ms-amber: #ffb900;
   --ms-red: #d83b01;
-  --line-soft: rgba(15, 23, 32, 0.08);
+  --line-soft: rgba(15, 23, 32, 0.14);
   --glass-surface: rgba(255, 255, 255, 0.76);
   --glass-border: rgba(255, 255, 255, 0.9);
   --shadow-sleek: 0 10px 30px rgba(15, 23, 32, 0.08);
+  /* Darken Tailwind gray-200 used for card borders site-wide */
+  --color-gray-200: #c8cdd4;
+  --color-gray-100: #dde0e5;
+  --color-gray-300: #adb5be;
 }
 
 html,
@@ -25,20 +29,20 @@ body,
 
 body {
   margin: 0;
-  font-family: "SF Pro Text", "SF Pro Display", "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-family:
+    "SF Pro Text", "SF Pro Display", "Segoe UI", "Helvetica Neue", Helvetica,
+    Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background:
-    radial-gradient(56rem 26rem at 10% -8%, rgba(255, 255, 255, 0.9) 0%, rgba(245, 247, 250, 0.65) 45%, transparent 72%),
-    radial-gradient(48rem 22rem at 90% 2%, rgba(247, 248, 250, 0.9) 0%, rgba(241, 243, 246, 0.55) 48%, transparent 74%),
-    linear-gradient(180deg, #fbfbfd 0%, #f6f7f9 52%, #f2f3f5 100%);
+  background: url("/newbg.png") center center / cover no-repeat fixed;
   color: var(--ink-strong);
 }
 
 .app-shell-background {
   position: relative;
   min-height: 100vh;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.78), rgba(255, 255, 255, 0.92));
+  /* No background — let the body image show through */
+  background: transparent;
 }
 
 .app-shell-background::before {
@@ -46,10 +50,9 @@ body {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background:
-    radial-gradient(38rem 18rem at -8% 2%, rgba(255, 255, 255, 0.7), transparent 72%),
-    radial-gradient(30rem 16rem at 108% 10%, rgba(244, 245, 247, 0.8), transparent 72%);
-  opacity: 0.65;
+  /* Very light white scrim so cards/text stay legible over the image */
+  background: rgba(255, 255, 255, 0.55);
+  opacity: 1;
 }
 
 .app-shell-content {
@@ -59,7 +62,7 @@ body {
 }
 
 * {
-  border-color: var(--line-soft);
+  border-color: var(--color-gray-200);
 }
 
 .nav-active-chip {
@@ -69,18 +72,23 @@ body {
   border-radius: 9999px;
   font-weight: 600;
   letter-spacing: 0.01em;
-  color: #0f1720;
-  background:
-    linear-gradient(110deg, rgba(255, 255, 255, 0.78), rgba(245, 247, 250, 0.58)),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(255, 255, 255, 0.82));
-  border: 1px solid rgba(255, 255, 255, 0.9);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 5px 14px rgba(15, 23, 32, 0.07);
+  color: #ffffff;
+  background: #00523e;
+  border: 1px solid #00523e;
+  box-shadow: 0 2px 8px rgba(0, 82, 62, 0.3);
+}
+
+.nav-active-chip.liquid-selectable::after {
+  display: none;
 }
 
 .liquid-selectable {
   position: relative;
   isolation: isolate;
-  transition: transform 180ms ease, box-shadow 220ms ease, color 180ms ease;
+  transition:
+    transform 180ms ease,
+    box-shadow 220ms ease,
+    color 180ms ease;
 }
 
 .liquid-selectable::after {
@@ -92,11 +100,24 @@ body {
   pointer-events: none;
   opacity: 0;
   transform: scale(0.96);
-  transition: opacity 220ms ease, transform 220ms ease;
+  transition:
+    opacity 220ms ease,
+    transform 220ms ease;
   background:
-    radial-gradient(75% 100% at 20% 15%, rgba(255, 255, 255, 0.7) 0%, rgba(255, 255, 255, 0.18) 58%, transparent 100%),
-    linear-gradient(120deg, rgba(255, 255, 255, 0.56), rgba(245, 247, 250, 0.22));
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.74), 0 8px 20px rgba(15, 23, 32, 0.09);
+    radial-gradient(
+      75% 100% at 20% 15%,
+      rgba(255, 255, 255, 0.7) 0%,
+      rgba(255, 255, 255, 0.18) 58%,
+      transparent 100%
+    ),
+    linear-gradient(
+      120deg,
+      rgba(255, 255, 255, 0.56),
+      rgba(245, 247, 250, 0.22)
+    );
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.74),
+    0 8px 20px rgba(15, 23, 32, 0.09);
 }
 
 .liquid-selectable:hover::after,
@@ -112,7 +133,9 @@ body {
 
 .nav-link-idle {
   color: #5a6470;
-  transition: color 180ms ease, transform 180ms ease;
+  transition:
+    color 180ms ease,
+    transform 180ms ease;
 }
 
 .nav-link-idle:hover {
@@ -137,7 +160,9 @@ body {
 
 .soft-icon-button {
   border-radius: 0.7rem;
-  transition: background-color 160ms ease, transform 160ms ease;
+  transition:
+    background-color 160ms ease,
+    transform 160ms ease;
 }
 
 .soft-icon-button:hover {
@@ -146,7 +171,9 @@ body {
 }
 
 .soft-ghost-button {
-  transition: background-color 160ms ease, color 160ms ease;
+  transition:
+    background-color 160ms ease,
+    color 160ms ease;
 }
 
 .soft-ghost-button:hover {
@@ -167,10 +194,18 @@ body {
   border-radius: 2px;
 }
 
-.ms-brand-mark i:nth-child(1) { background: var(--ms-blue); }
-.ms-brand-mark i:nth-child(2) { background: var(--ms-green); }
-.ms-brand-mark i:nth-child(3) { background: var(--ms-amber); }
-.ms-brand-mark i:nth-child(4) { background: var(--ms-red); }
+.ms-brand-mark i:nth-child(1) {
+  background: var(--ms-blue);
+}
+.ms-brand-mark i:nth-child(2) {
+  background: var(--ms-green);
+}
+.ms-brand-mark i:nth-child(3) {
+  background: var(--ms-amber);
+}
+.ms-brand-mark i:nth-child(4) {
+  background: var(--ms-red);
+}
 
 @keyframes shellFadeIn {
   from {
@@ -186,4 +221,93 @@ body {
 code {
   font-family:
     source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace;
+}
+
+/* ─── Global hover system ───────────────────────────────────────────── */
+
+/* All buttons: smooth lift + slight darken on hover, press on active */
+button {
+  cursor: pointer;
+  transition:
+    transform 150ms ease,
+    box-shadow 150ms ease,
+    background-color 150ms ease,
+    border-color 150ms ease,
+    opacity 150ms ease;
+}
+button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+button:active {
+  transform: translateY(0px) scale(0.98);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+/* Don't lift disabled buttons */
+button:disabled {
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+  opacity: 0.5;
+}
+
+/* Solid green primary buttons — deepen on hover */
+button[style*="#00523E"],
+button[style*="#00523e"] {
+  box-shadow: 0 2px 8px rgba(0, 82, 62, 0.25);
+}
+button[style*="#00523E"]:hover,
+button[style*="#00523e"]:hover {
+  box-shadow: 0 6px 18px rgba(0, 82, 62, 0.35);
+  filter: brightness(1.08);
+}
+
+/* Clickable cards (hover:shadow-sm / hover:shadow-md already applied
+   inline — this adds the lift so they feel tactile) */
+a[class*="rounded"],
+div[class*="hover:shadow"],
+div[class*="hover:border"] {
+  transition:
+    transform 160ms ease,
+    box-shadow 160ms ease,
+    border-color 160ms ease;
+}
+a[class*="rounded"]:hover,
+div[class*="hover:shadow"]:hover {
+  transform: translateY(-2px);
+}
+div[class*="hover:border"]:hover {
+  transform: translateY(-1px);
+}
+
+/* Links that look like buttons (text-green "View Details →" etc.) */
+a,
+button[class*="underline"] {
+  transition:
+    opacity 140ms ease,
+    color 140ms ease;
+}
+
+/* Stat / overview tiles with a border — give them a gentle lift */
+div[class*="min-w-[180px]"] {
+  transition:
+    transform 160ms ease,
+    box-shadow 160ms ease;
+  cursor: default;
+}
+div[class*="min-w-[180px]"]:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+/* Quick-action link cards (Requests page) */
+a[class*="rounded-xl"] {
+  transition:
+    transform 160ms ease,
+    box-shadow 160ms ease,
+    border-color 160ms ease;
+}
+a[class*="rounded-xl"]:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
 }

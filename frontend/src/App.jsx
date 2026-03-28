@@ -1,4 +1,10 @@
-import { BrowserRouter, Navigate, Outlet, Route, Routes } from "react-router-dom";
+import {
+  BrowserRouter,
+  Navigate,
+  Outlet,
+  Route,
+  Routes,
+} from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import PrivateRoute from "./components/PrivateRoute";
 import Navbar from "./components/layout/Navbar";
@@ -36,7 +42,14 @@ function AppLayout() {
 }
 
 function RoleHomeRedirect() {
-  const { user } = useAuth();
+  const { user, initializing } = useAuth();
+  if (initializing) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-[#00523E] border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
   if (!user) return <Navigate to="/login" replace />;
   return <Navigate to={`/${user.role.toLowerCase()}/dashboard`} replace />;
 }
@@ -58,19 +71,37 @@ export default function App() {
               <Route path="/worker/requests" element={<WorkerRequests />} />
               <Route path="/worker/feedback" element={<WorkerFeedback />} />
               <Route path="/worker/profile" element={<ProfileSettings />} />
-              <Route path="/worker/request-time-off" element={<RequestTimeOff />} />
-              <Route path="/worker/update-availability" element={<UpdateAvailability />} />
+              <Route
+                path="/worker/request-time-off"
+                element={<RequestTimeOff />}
+              />
+              <Route
+                path="/worker/update-availability"
+                element={<UpdateAvailability />}
+              />
               <Route path="/worker/shift-swap" element={<ShiftSwap />} />
             </Route>
           </Route>
 
           <Route element={<PrivateRoute allowedRoles={["SUPERVISOR"]} />}>
             <Route element={<AppLayout />}>
-              <Route path="/supervisor/dashboard" element={<SupervisorDashboard />} />
+              <Route
+                path="/supervisor/dashboard"
+                element={<SupervisorDashboard />}
+              />
               <Route path="/supervisor/team" element={<SupervisorTeam />} />
-              <Route path="/supervisor/team/:workerId" element={<WorkerProfile />} />
-              <Route path="/supervisor/schedule" element={<SupervisorSchedule />} />
-              <Route path="/supervisor/approvals" element={<SupervisorApprovals />} />
+              <Route
+                path="/supervisor/team/:workerId"
+                element={<WorkerProfile />}
+              />
+              <Route
+                path="/supervisor/schedule"
+                element={<SupervisorSchedule />}
+              />
+              <Route
+                path="/supervisor/approvals"
+                element={<SupervisorApprovals />}
+              />
               <Route path="/supervisor/profile" element={<ProfileSettings />} />
             </Route>
           </Route>
