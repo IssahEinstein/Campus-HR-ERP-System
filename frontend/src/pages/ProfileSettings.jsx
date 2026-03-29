@@ -284,6 +284,9 @@ export default function ProfileSettings() {
           placeholder="Current password"
           className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
           required
+          autoCapitalize="none"
+          autoCorrect="off"
+          spellCheck={false}
         />
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <input
@@ -294,6 +297,9 @@ export default function ProfileSettings() {
             className="border border-gray-300 rounded-lg px-3 py-2 text-sm"
             required
             minLength={8}
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
           />
           <input
             type="password"
@@ -303,6 +309,9 @@ export default function ProfileSettings() {
             className="border border-gray-300 rounded-lg px-3 py-2 text-sm"
             required
             minLength={8}
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
           />
         </div>
         <button
