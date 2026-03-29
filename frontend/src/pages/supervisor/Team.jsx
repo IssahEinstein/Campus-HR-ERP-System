@@ -17,8 +17,9 @@ function normalizeWorker(w) {
 }
 
 export default function SupervisorTeam() {
-  const [workers,  setWorkers]  = useState([]);
-  const [loading,  setLoading]  = useState(true);
+  const [workers, setWorkers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showInviteForm, setShowInviteForm] = useState(false);
   const [feedback, setFeedback] = useState(null); // worker to give feedback to
   const [inviting, setInviting] = useState(false);
   const [resendingWorkerId, setResendingWorkerId] = useState("");
@@ -37,7 +38,8 @@ export default function SupervisorTeam() {
 
   const loadWorkers = () => {
     setLoading(true);
-    supervisorsApi.myWorkers()
+    supervisorsApi
+      .myWorkers()
       .then((data) => setWorkers(data.map(normalizeWorker)))
       .catch(console.error)
       .finally(() => setLoading(false));
@@ -59,8 +61,13 @@ export default function SupervisorTeam() {
     setInviting(true);
     try {
       const response = await supervisorsApi.inviteWorker(inviteForm);
-      const message = response?.message ?? "Worker created and invite processed.";
-      if (message.toLowerCase().includes("could not") || message.toLowerCase().includes("failed") || message.toLowerCase().includes("rejected")) {
+      const message =
+        response?.message ?? "Worker created and invite processed.";
+      if (
+        message.toLowerCase().includes("could not") ||
+        message.toLowerCase().includes("failed") ||
+        message.toLowerCase().includes("rejected")
+      ) {
         setFormError(message);
       } else {
         setFormMessage(message);
@@ -73,9 +80,12 @@ export default function SupervisorTeam() {
         student_id: "",
         role: "WORKER",
       });
+      setShowInviteForm(false);
       loadWorkers();
     } catch (requestError) {
-      setFormError(requestError.response?.data?.detail ?? "Failed to create worker.");
+      setFormError(
+        requestError.response?.data?.detail ?? "Failed to create worker.",
+      );
     } finally {
       setInviting(false);
     }
@@ -88,13 +98,20 @@ export default function SupervisorTeam() {
     try {
       const response = await supervisorsApi.resendWorkerInvite(worker.id);
       const message = response?.message ?? "Worker invite resend processed.";
-      if (message.toLowerCase().includes("could not") || message.toLowerCase().includes("failed") || message.toLowerCase().includes("rejected")) {
+      if (
+        message.toLowerCase().includes("could not") ||
+        message.toLowerCase().includes("failed") ||
+        message.toLowerCase().includes("rejected")
+      ) {
         setFormError(message);
       } else {
         setFormMessage(message);
       }
     } catch (requestError) {
-      setFormError(requestError.response?.data?.detail ?? "Failed to resend worker invite.");
+      setFormError(
+        requestError.response?.data?.detail ??
+          "Failed to resend worker invite.",
+      );
     } finally {
       setResendingWorkerId("");
     }
@@ -110,179 +127,285 @@ export default function SupervisorTeam() {
       setPendingDeleteWorker(null);
       loadWorkers();
     } catch (requestError) {
-      setFormError(requestError.response?.data?.detail ?? "Failed to delete worker.");
+      setFormError(
+        requestError.response?.data?.detail ?? "Failed to delete worker.",
+      );
     } finally {
       setDeletingWorkerId("");
     }
   };
 
-  const isInvitePending = (worker) => String(worker?.status ?? "").toUpperCase() === "INVITED";
+  const isInvitePending = (worker) =>
+    String(worker?.status ?? "").toUpperCase() === "INVITED";
 
-  if (loading) return <div className="flex items-center justify-center h-64 text-gray-400">Loading…</div>;
+  if (loading)
+    return (
+      <div className="flex items-center justify-center h-64 text-gray-400">
+        Loading…
+      </div>
+    );
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="mb-8 flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-light mb-2">
-            <span className="font-medium" style={{ color: "#00523E" }}>My Team</span>
-          </h1>
-          <p className="text-gray-600">{workers.length} worker{workers.length !== 1 ? "s" : ""} on your team.</p>
-        </div>
+      <div className="mb-8">
+        <h1 className="text-3xl font-light mb-2">
+          <span className="font-medium" style={{ color: "#00523E" }}>
+            Team
+          </span>{" "}
+          Management
+        </h1>
+        <p className="text-gray-600">
+          View and manage your team members — {workers.length} worker
+          {workers.length !== 1 ? "s" : ""} on your team.
+        </p>
       </div>
 
-      <form onSubmit={handleInviteSubmit} className="mb-8 bg-white rounded-xl border border-gray-200 p-6 space-y-4">
-        <div>
-          <h2 className="text-lg font-medium">Create Worker</h2>
-          <p className="text-sm text-gray-500">Create a worker account and send an activation invite.</p>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <input
-            name="first_name"
-            value={inviteForm.first_name}
-            onChange={handleInviteInput}
-            placeholder="First name"
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm"
-            required
-          />
-          <input
-            name="last_name"
-            value={inviteForm.last_name}
-            onChange={handleInviteInput}
-            placeholder="Last name"
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm"
-            required
-          />
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <input
-            type="email"
-            name="email"
-            value={inviteForm.email}
-            onChange={handleInviteInput}
-            placeholder="Email"
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm"
-            required
-          />
-          <select
-            name="role"
-            value={inviteForm.role}
-            onChange={handleInviteInput}
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm"
-            required
+      <div className="mb-8">
+        {!showInviteForm ? (
+          <button
+            onClick={() => setShowInviteForm(true)}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium text-white hover:opacity-90"
+            style={{ backgroundColor: "#00523E" }}
           >
-            <option value="WORKER">WORKER</option>
-          </select>
-        </div>
+            Add New Worker +
+          </button>
+        ) : (
+          <form
+            onSubmit={handleInviteSubmit}
+            className="rounded-2xl p-6 space-y-4"
+            style={{
+              background:
+                "linear-gradient(160deg, rgba(255,255,255,0.78) 0%, rgba(242,250,245,0.88) 100%)",
+              backdropFilter: "blur(18px)",
+              WebkitBackdropFilter: "blur(18px)",
+              border: "1px solid rgba(0,82,62,0.11)",
+              boxShadow:
+                "0 8px 40px rgba(0,82,62,0.09), inset 0 1px 0 rgba(255,255,255,0.95)",
+            }}
+          >
+            <div className="flex items-start justify-between">
+              <div>
+                <h2 className="text-lg font-medium">Add New Worker</h2>
+                <p className="text-sm text-gray-500 mt-0.5">
+                  Create a worker account and send an activation invite.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowInviteForm(false)}
+                className="text-gray-400 hover:text-gray-600 text-xl leading-none"
+              >
+                ✕
+              </button>
+            </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <input
-            name="worker_id"
-            value={inviteForm.worker_id}
-            onChange={handleInviteInput}
-            placeholder="Worker ID"
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm"
-            required
-          />
-          <input
-            name="student_id"
-            value={inviteForm.student_id}
-            onChange={handleInviteInput}
-            placeholder="Student ID"
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm"
-            required
-          />
-        </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <input
+                name="first_name"
+                value={inviteForm.first_name}
+                onChange={handleInviteInput}
+                placeholder="First name"
+                className="border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                required
+              />
+              <input
+                name="last_name"
+                value={inviteForm.last_name}
+                onChange={handleInviteInput}
+                placeholder="Last name"
+                className="border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                required
+              />
+            </div>
 
-        {formError && (
-          <div className="rounded-lg px-4 py-3 text-sm bg-red-50 text-red-700 border border-red-200">
-            {formError}
-          </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <input
+                type="email"
+                name="email"
+                value={inviteForm.email}
+                onChange={handleInviteInput}
+                placeholder="Email"
+                className="border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                required
+              />
+              <select
+                name="role"
+                value={inviteForm.role}
+                onChange={handleInviteInput}
+                className="border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                required
+              >
+                <option value="WORKER">WORKER</option>
+              </select>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <input
+                name="worker_id"
+                value={inviteForm.worker_id}
+                onChange={handleInviteInput}
+                placeholder="Worker ID"
+                className="border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                required
+              />
+              <input
+                name="student_id"
+                value={inviteForm.student_id}
+                onChange={handleInviteInput}
+                placeholder="Student ID"
+                className="border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                required
+              />
+            </div>
+
+            {formError && (
+              <div className="rounded-lg px-4 py-3 text-sm bg-red-50 text-red-700 border border-red-200">
+                {formError}
+              </div>
+            )}
+
+            {formMessage && (
+              <div className="rounded-lg px-4 py-3 text-sm bg-green-50 text-green-700 border border-green-200">
+                {formMessage}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={inviting}
+              className="px-4 py-2 rounded-lg text-sm font-medium text-white hover:opacity-90 disabled:opacity-60"
+              style={{ backgroundColor: "#00523E" }}
+            >
+              {inviting ? "Creating..." : "Create Worker"}
+            </button>
+          </form>
         )}
-
-        {formMessage && (
-          <div className="rounded-lg px-4 py-3 text-sm bg-green-50 text-green-700 border border-green-200">
-            {formMessage}
-          </div>
-        )}
-
-        <button
-          type="submit"
-          disabled={inviting}
-          className="px-4 py-2 rounded-lg text-sm font-medium text-white hover:opacity-90 disabled:opacity-60"
-          style={{ backgroundColor: "#00523E" }}
-        >
-          {inviting ? "Creating..." : "Create Worker"}
-        </button>
-      </form>
+      </div>
 
       {workers.length === 0 ? (
-        <div className="bg-white rounded-xl border border-gray-200 p-12 text-center text-gray-400">
+        <div
+          className="rounded-2xl p-12 text-center text-gray-400"
+          style={{
+            background:
+              "linear-gradient(160deg, rgba(255,255,255,0.78) 0%, rgba(242,250,245,0.88) 100%)",
+            backdropFilter: "blur(18px)",
+            WebkitBackdropFilter: "blur(18px)",
+            border: "1px solid rgba(0,82,62,0.11)",
+            boxShadow:
+              "0 8px 40px rgba(0,82,62,0.09), inset 0 1px 0 rgba(255,255,255,0.95)",
+          }}
+        >
           No workers assigned to your team yet.
         </div>
       ) : (
-        <div id="team-list" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 scroll-mt-24">
+        <div
+          id="team-list"
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 scroll-mt-24"
+        >
           {workers.map((w) => {
             const firstInitial = (w.firstName ?? "").trim().charAt(0);
             const lastInitial = (w.lastName ?? "").trim().charAt(0);
             const emailInitial = (w.email ?? "").trim().charAt(0);
-            const initials = (`${firstInitial}${lastInitial}`.toUpperCase() || emailInitial.toUpperCase() || "NA");
+            const initials =
+              `${firstInitial}${lastInitial}`.toUpperCase() ||
+              emailInitial.toUpperCase() ||
+              "NA";
+            const isPending = isInvitePending(w);
+
             return (
-              <div key={w.id} className="bg-white rounded-xl border border-gray-200 p-5">
+              <div
+                key={w.id}
+                className="rounded-2xl p-6 hover:shadow-lg transition-shadow"
+                style={{
+                  background:
+                    "linear-gradient(160deg, rgba(255,255,255,0.78) 0%, rgba(242,250,245,0.88) 100%)",
+                  backdropFilter: "blur(18px)",
+                  WebkitBackdropFilter: "blur(18px)",
+                  border: "1px solid rgba(0,82,62,0.11)",
+                  boxShadow:
+                    "0 8px 40px rgba(0,82,62,0.09), inset 0 1px 0 rgba(255,255,255,0.95)",
+                }}
+              >
+                {/* Card header */}
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
                     <div
-                      className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold"
+                      className="w-12 h-12 rounded-full flex items-center justify-center text-white font-medium text-lg flex-shrink-0"
                       style={{ backgroundColor: "#00523E" }}
                     >
                       {initials}
                     </div>
                     <div>
-                      <div className="font-medium">{w.firstName} {w.lastName}</div>
+                      <h3 className="font-medium text-gray-900">
+                        {w.firstName} {w.lastName}
+                      </h3>
+                      <p className="text-sm text-gray-500 truncate max-w-[160px]">
+                        {w.email}
+                      </p>
                     </div>
                   </div>
-                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                    isInvitePending(w) ? "bg-yellow-50 text-yellow-700" : "bg-green-50 text-green-700"
-                  }`}>
-                    {isInvitePending(w) ? "Invite pending" : "Active"}
+                  <span
+                    className={`px-2 py-1 rounded-full text-xs font-medium flex-shrink-0 ${
+                      isPending
+                        ? "bg-orange-100 text-orange-800"
+                        : "bg-green-100 text-green-800"
+                    }`}
+                  >
+                    {isPending ? "Invite Pending" : "Active"}
                   </span>
                 </div>
-                {w.email && <div className="text-sm text-gray-500 mb-4 truncate">{w.email}</div>}
-                {w.departmentName && <div className="text-xs text-gray-400 mb-4">{w.departmentName}</div>}
-                <div className="flex gap-2">
+
+                {/* Info rows */}
+                <div className="space-y-2 mb-4">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">Department</span>
+                    <span className="font-medium text-gray-800">
+                      {w.departmentName || "—"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">Worker ID</span>
+                    <span className="font-medium text-gray-800">
+                      {w.workerId || w.id?.slice(0, 8)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex gap-2 flex-wrap">
                   <Link
                     to={`/supervisor/team/${w.id}`}
-                    className="flex-1 text-center text-sm py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 font-medium"
+                    className="flex-1 text-center text-sm py-2 rounded-lg text-white font-medium hover:opacity-90"
+                    style={{ backgroundColor: "#00523E" }}
                   >
                     View Profile
                   </Link>
                   <button
                     onClick={() => setFeedback(w)}
-                    className="flex items-center gap-1 text-sm py-1.5 px-3 rounded-lg text-white hover:opacity-90"
-                    style={{ backgroundColor: "#00523E" }}
-                    title="Give Feedback"
+                    className="flex items-center gap-1.5 text-sm py-2 px-3 rounded-lg font-medium"
+                    style={{
+                      border: "1px solid rgba(0,82,62,0.18)",
+                      color: "#00523E",
+                    }}
                   >
                     <MessageSquare size={14} />
+                    Feedback
                   </button>
-                  {isInvitePending(w) && (
+                  {isPending && (
                     <button
                       onClick={() => resendInvite(w)}
                       disabled={resendingWorkerId === w.id}
                       className="text-xs px-2 py-1 rounded border border-blue-200 text-blue-700 hover:bg-blue-50 disabled:opacity-60"
-                      title="Resend Invite"
                     >
-                      {resendingWorkerId === w.id ? "Resending..." : "Resend"}
+                      {resendingWorkerId === w.id ? "Resending…" : "Resend"}
                     </button>
                   )}
                   <button
                     onClick={() => setPendingDeleteWorker(w)}
                     disabled={deletingWorkerId === w.id}
                     className="text-xs px-2 py-1 rounded border border-red-200 text-red-600 hover:bg-red-50 disabled:opacity-60"
-                    title="Delete Worker"
                   >
-                    {deletingWorkerId === w.id ? "Deleting..." : "Delete"}
+                    {deletingWorkerId === w.id ? "Deleting…" : "Remove"}
                   </button>
                 </div>
               </div>
@@ -301,7 +424,8 @@ export default function SupervisorTeam() {
             <div>
               <h3 className="text-lg font-medium">Delete Worker</h3>
               <p className="text-sm text-gray-600 mt-1">
-                Delete {pendingDeleteWorker.firstName} {pendingDeleteWorker.lastName}? This action cannot be undone.
+                Delete {pendingDeleteWorker.firstName}{" "}
+                {pendingDeleteWorker.lastName}? This action cannot be undone.
               </p>
             </div>
 
@@ -318,7 +442,9 @@ export default function SupervisorTeam() {
                 disabled={deletingWorkerId === pendingDeleteWorker.id}
                 className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-red-600 hover:bg-red-700 disabled:opacity-60"
               >
-                {deletingWorkerId === pendingDeleteWorker.id ? "Deleting..." : "Delete Worker"}
+                {deletingWorkerId === pendingDeleteWorker.id
+                  ? "Deleting..."
+                  : "Delete Worker"}
               </button>
             </div>
           </div>

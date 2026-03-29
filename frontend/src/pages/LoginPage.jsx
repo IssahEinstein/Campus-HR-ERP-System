@@ -5,10 +5,10 @@ import { useAuth } from "../context/AuthContext";
 
 export default function LoginPage() {
   const { user, login } = useAuth();
-  const [email, setEmail]       = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError]       = useState(null);
-  const [loading, setLoading]   = useState(false);
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   // Already logged in — redirect to appropriate dashboard
   if (user) {
@@ -17,12 +17,20 @@ export default function LoginPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError(null); setLoading(true);
+    setError(null);
+    setLoading(true);
+    console.log("📝 [LoginPage] Submitting:", { email: email.trim() });
     try {
       await login(email.trim(), password);
+      console.log("✅ [LoginPage] Login successful");
     } catch (err) {
+      console.error("❌ [LoginPage] Login error:", err);
+      console.error("❌ [LoginPage] Response data:", err?.response?.data);
+      console.error("❌ [LoginPage] Status:", err?.response?.status);
       setError(err.response?.data?.detail ?? "Invalid email or password");
-    } finally { setLoading(false); }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -39,7 +47,10 @@ export default function LoginPage() {
         {/* Logo */}
         <div className="text-center mb-8 bg-white/60 backdrop-blur-sm rounded-2xl p-6 shadow-lg">
           <h1 className="text-4xl font-light mb-2">
-            Campus<span className="font-medium" style={{ color: "#00523E" }}>ERP</span>
+            Campus
+            <span className="font-medium" style={{ color: "#00523E" }}>
+              ERP
+            </span>
           </h1>
           <p className="text-gray-600">Campus Job Management System</p>
         </div>
@@ -57,7 +68,9 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Email
+              </label>
               <input
                 type="email"
                 value={email}
@@ -69,7 +82,9 @@ export default function LoginPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Password
+              </label>
               <input
                 type="password"
                 value={password}
@@ -94,14 +109,20 @@ export default function LoginPage() {
           <div className="mt-8 pt-6 border-t border-gray-200 text-center">
             <p className="text-sm text-gray-500">
               Need help?{" "}
-              <a href="mailto:hr@university.edu" className="hover:underline" style={{ color: "#00523E" }}>
+              <a
+                href="mailto:hr@university.edu"
+                className="hover:underline"
+                style={{ color: "#00523E" }}
+              >
                 Contact Support
               </a>
             </p>
           </div>
         </div>
 
-        <p className="text-center text-sm text-gray-500 mt-6">© 2026 CampusERP. All rights reserved.</p>
+        <p className="text-center text-sm text-gray-500 mt-6">
+          © 2026 CampusERP. All rights reserved.
+        </p>
       </div>
     </div>
   );

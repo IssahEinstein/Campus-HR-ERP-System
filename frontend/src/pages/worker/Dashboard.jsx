@@ -1,27 +1,31 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Clock, DollarSign, Calendar, ChevronRight } from "lucide-react";
+import {
+  Clock,
+  DollarSign,
+  Calendar,
+  AlertCircle,
+  ChevronRight,
+  CalendarOff,
+  ArrowLeftRight,
+  Settings2,
+  CheckCircle,
+  Bell,
+  MessageSquare,
+  User,
+} from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import * as shiftsApi from "../../api/shifts";
 import * as payrollApi from "../../api/payroll";
 import * as timeoffApi from "../../api/timeoff";
-
-function StatCard({ label, value, sub, children }) {
-  return (
-    <div className="bg-white rounded-xl p-6 border border-gray-200 min-w-[160px] flex-shrink-0 flex flex-col items-center justify-center text-center">
-      {children}
-      <div className="text-sm text-gray-600 mb-1">{label}</div>
-      <div className="text-3xl font-light mb-1">{value}</div>
-      {sub && <div className="text-xs text-gray-500">{sub}</div>}
-    </div>
-  );
-}
+import * as feedbackApi from "../../api/feedback";
 
 export default function WorkerDashboard() {
   const { user } = useAuth();
   const [assignments, setAssignments] = useState([]);
-  const [payStubs,    setPayStubs]    = useState([]);
-  const [requests,    setRequests]    = useState([]);
+  const [payStubs, setPayStubs] = useState([]);
+  const [requests, setRequests] = useState([]);
+  const [feedbackItems, setFeedbackItems] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -29,31 +33,66 @@ export default function WorkerDashboard() {
       shiftsApi.myAssignments(),
       payrollApi.myPayStubs(),
       timeoffApi.myTimeOff(),
-    ]).then(([a, p, r]) => {
-      setAssignments(a);
-      setPayStubs(p);
-      setRequests(r);
-    }).catch(console.error)
+      feedbackApi.myFeedback().catch(() => []),
+    ])
+      .then(([a, p, r, f]) => {
+        setAssignments(a);
+        setPayStubs(p);
+        setRequests(r);
+        setFeedbackItems(f);
+      })
+      .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
 
   const now = new Date();
-  const upcoming = assignments.filter((a) => a.shift && new Date(a.shift.startTime) >= now);
+
+  const upcoming = assignments
+    .filter((a) => a.shift && new Date(a.shift.startTime) >= now)
+    .sort((a, b) => new Date(a.shift.startTime) - new Date(b.shift.startTime));
+
   const thisWeekHrs = assignments
     .filter((a) => {
       if (!a.shift) return false;
       const d = new Date(a.shift.startTime);
-      const diff = (now - d) / 864e5;
-      return diff >= 0 && diff <= 7;
+      const diff = (d - now) / 864e5;
+      return diff >= -7 && diff <= 7;
     })
     .reduce((sum, a) => sum + (a.shift?.expectedHours ?? 0), 0);
 
-  const latestStub  = payStubs[0];
-  const pendingReqs = requests.filter((r) => r.status === "PENDING").length;
-  const nextShift   = upcoming[0]?.shift;
-  const nextShiftDate = nextShift ? new Date(nextShift.startTime).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }) : "None";
+  const thisMonthHrs = assignments
+    .filter((a) => {
+      if (!a.shift) return false;
+      const d = new Date(a.shift.startTime);
+      return (
+        d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
+      );
+    })
+    .reduce((sum, a) => sum + (a.shift?.expectedHours ?? 0), 0);
 
-  if (loading) return <div className="flex items-center justify-center h-64 text-gray-400">Loading…</div>;
+  const latestStub = payStubs[0];
+  const nextShift = upcoming[0]?.shift;
+  const pendingReqs = requests.filter((r) => r.status === "PENDING").length;
+  const approvedReqs = requests.filter((r) => r.status === "APPROVED").length;
+
+  const fmt = (iso) =>
+    new Date(iso).toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  const fmtDate = (iso) =>
+    new Date(iso).toLocaleDateString("en-US", {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+    });
+
+  if (loading)
+    return (
+      <div className="flex items-center justify-center h-64 text-gray-400">
+        Loading...
+      </div>
+    );
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -65,61 +104,252 @@ export default function WorkerDashboard() {
             {user?.first_name ?? "Worker"}
           </span>
         </h1>
-        <p className="text-gray-600">Here's what's happening with your campus job today.</p>
+        <p className="text-gray-600">
+          Here's what's happening with your campus job today.
+        </p>
       </div>
 
-      {/* Stats */}
-      <div className="flex gap-4 mb-8 overflow-x-auto pb-2">
-        <StatCard label="This Week" value={`${thisWeekHrs}`} sub="hrs scheduled">
-          <Clock size={28} className="text-green-600 mb-2" />
-        </StatCard>
-        <StatCard
-          label="Next Paycheck"
-          value={latestStub?.status === "GENERATED" ? `$${Number(latestStub.netPay ?? 0).toFixed(0)}` : "—"}
-          sub={latestStub?.status === "GENERATED" ? "pending approval" : "no pending stub"}
-        >
-          <DollarSign size={28} className="text-green-600 mb-2" />
-        </StatCard>
-        <StatCard label="Next Shift" value={nextShiftDate} sub={nextShift?.title ?? ""}>
-          <Calendar size={28} className="text-green-600 mb-2" />
-        </StatCard>
-        <StatCard label="Pending Requests" value={pendingReqs} sub="awaiting review">
-          <ChevronRight size={28} className="text-green-600 mb-2" />
-        </StatCard>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left — upcoming shifts */}
+      {/* Outer two-column layout: left=content, right=sidebar */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+        {/* Left column — stat cards + main content */}
         <div className="lg:col-span-2 space-y-6">
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-medium">Upcoming Shifts</h2>
-              <Link to="/worker/schedule" className="text-sm flex items-center gap-1" style={{ color: "#00523E" }}>
-                View all <ChevronRight size={16} />
+          {/* Stat Cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {[
+              {
+                icon: <Clock size={32} style={{ color: "#00523E" }} />,
+                label: "This Week",
+                value: (
+                  <>
+                    {thisWeekHrs}
+                    <span className="text-lg text-gray-500"> hrs</span>
+                  </>
+                ),
+                sub: "scheduled",
+              },
+              {
+                icon: <DollarSign size={32} style={{ color: "#00523E" }} />,
+                label: "Latest Pay",
+                value: latestStub
+                  ? `$${Number(latestStub.netPay ?? 0).toFixed(0)}`
+                  : "—",
+                sub:
+                  latestStub?.status === "PAID"
+                    ? "paid"
+                    : latestStub
+                      ? "pending"
+                      : "no stubs yet",
+              },
+              {
+                icon: <Calendar size={32} style={{ color: "#00523E" }} />,
+                label: "This Month",
+                value: (
+                  <>
+                    {thisMonthHrs}
+                    <span className="text-lg text-gray-500"> hrs</span>
+                  </>
+                ),
+                sub: `${now.toLocaleDateString("en-US", { month: "short" })} total`,
+              },
+              {
+                icon: <AlertCircle size={32} style={{ color: "#00523E" }} />,
+                label: "Next Shift",
+                value: nextShift
+                  ? new Date(nextShift.startTime).toLocaleDateString("en-US", {
+                      weekday: "short",
+                    })
+                  : "—",
+                sub: nextShift ? fmt(nextShift.startTime) : "none scheduled",
+              },
+            ].map(({ icon, label, value, sub }) => (
+              <div
+                key={label}
+                className="rounded-2xl p-5 flex flex-col items-center justify-center text-center relative overflow-hidden"
+                style={{
+                  background:
+                    "linear-gradient(160deg, rgba(255,255,255,0.78) 0%, rgba(242,250,245,0.88) 100%)",
+                  backdropFilter: "blur(18px)",
+                  WebkitBackdropFilter: "blur(18px)",
+                  border: "1px solid rgba(0,82,62,0.11)",
+                  boxShadow:
+                    "0 8px 40px rgba(0,82,62,0.09), inset 0 1px 0 rgba(255,255,255,0.95)",
+                }}
+              >
+                <div
+                  className="w-10 h-10 rounded-xl flex items-center justify-center mb-3"
+                  style={{ backgroundColor: "rgba(0,82,62,0.08)" }}
+                >
+                  {icon}
+                </div>
+                <div className="text-xs text-gray-500 mb-1">{label}</div>
+                <div className="text-2xl font-semibold text-gray-900 mb-0.5">
+                  {value}
+                </div>
+                <div className="text-xs text-gray-400">{sub}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Quick Overview */}
+          <div
+            className="rounded-2xl overflow-hidden"
+            style={{
+              background:
+                "linear-gradient(160deg, rgba(255,255,255,0.78) 0%, rgba(242,250,245,0.88) 100%)",
+              backdropFilter: "blur(18px)",
+              WebkitBackdropFilter: "blur(18px)",
+              border: "1px solid rgba(0,82,62,0.11)",
+              boxShadow:
+                "0 8px 40px rgba(0,82,62,0.09), inset 0 1px 0 rgba(255,255,255,0.95)",
+            }}
+          >
+            <div className="px-6 pt-6 pb-2">
+              <h2 className="text-base font-semibold text-gray-800">
+                Quick Overview
+              </h2>
+            </div>
+            <div className="px-6 pb-6 space-y-3 mt-3">
+              <div
+                className="flex items-center justify-between p-4 rounded-xl"
+                style={{ backgroundColor: "rgba(0,82,62,0.04)" }}
+              >
+                <div>
+                  <p className="text-xs text-gray-500 mb-0.5">Next Shift</p>
+                  <p className="font-medium text-gray-900 text-sm">
+                    {nextShift
+                      ? `${fmtDate(nextShift.startTime)} at ${fmt(nextShift.startTime)}`
+                      : "No shifts scheduled"}
+                  </p>
+                </div>
+                <Link
+                  to="/worker/schedule"
+                  className="text-xs px-3 py-1.5 rounded-lg font-medium flex-shrink-0"
+                  style={{
+                    backgroundColor: "rgba(0,82,62,0.08)",
+                    color: "#00523E",
+                  }}
+                >
+                  View Schedule
+                </Link>
+              </div>
+              <div
+                className="flex items-center justify-between p-4 rounded-xl"
+                style={{ backgroundColor: "rgba(0,82,62,0.04)" }}
+              >
+                <div>
+                  <p className="text-xs text-gray-500 mb-0.5">
+                    Latest Pay Stub
+                  </p>
+                  <p className="font-medium text-gray-900 text-sm">
+                    {latestStub
+                      ? `${latestStub.status === "PAID" ? "Paid" : "Pending"} — $${Number(latestStub.netPay ?? 0).toFixed(2)}`
+                      : "No pay stubs yet"}
+                  </p>
+                </div>
+                <Link
+                  to="/worker/payroll"
+                  className="text-xs px-3 py-1.5 rounded-lg font-medium flex-shrink-0"
+                  style={{
+                    backgroundColor: "rgba(0,82,62,0.08)",
+                    color: "#00523E",
+                  }}
+                >
+                  View Payroll
+                </Link>
+              </div>
+              <div
+                className="flex items-center justify-between p-4 rounded-xl"
+                style={{ backgroundColor: "rgba(0,82,62,0.04)" }}
+              >
+                <div>
+                  <p className="text-xs text-gray-500 mb-0.5">
+                    Time-Off Requests
+                  </p>
+                  <p className="font-medium text-gray-900 text-sm">
+                    {pendingReqs > 0
+                      ? `${pendingReqs} pending`
+                      : "No pending requests"}
+                  </p>
+                </div>
+                <Link
+                  to="/worker/requests"
+                  className="text-xs px-3 py-1.5 rounded-lg font-medium flex-shrink-0"
+                  style={{
+                    backgroundColor: "rgba(0,82,62,0.08)",
+                    color: "#00523E",
+                  }}
+                >
+                  View Requests
+                </Link>
+              </div>
+            </div>
+          </div>
+
+          {/* Upcoming Shifts */}
+          <div
+            className="rounded-2xl overflow-hidden"
+            style={{
+              background:
+                "linear-gradient(160deg, rgba(255,255,255,0.78) 0%, rgba(242,250,245,0.88) 100%)",
+              backdropFilter: "blur(18px)",
+              WebkitBackdropFilter: "blur(18px)",
+              border: "1px solid rgba(0,82,62,0.11)",
+              boxShadow:
+                "0 8px 40px rgba(0,82,62,0.09), inset 0 1px 0 rgba(255,255,255,0.95)",
+            }}
+          >
+            <div
+              className="flex items-center justify-between px-6 py-5 border-b"
+              style={{ borderColor: "rgba(0,82,62,0.09)" }}
+            >
+              <h2 className="text-base font-semibold text-gray-800">
+                Upcoming Shifts
+              </h2>
+              <Link
+                to="/worker/schedule"
+                className="text-xs flex items-center gap-1 font-medium hover:underline"
+                style={{ color: "#00523E" }}
+              >
+                View all <ChevronRight size={13} />
               </Link>
             </div>
             {upcoming.length === 0 ? (
-              <p className="text-sm text-gray-500">No upcoming shifts scheduled.</p>
+              <div className="p-12 text-center text-gray-400 text-sm">
+                No upcoming shifts scheduled.
+              </div>
             ) : (
-              <div className="space-y-3">
+              <div
+                className="divide-y"
+                style={{ borderColor: "rgba(0,82,62,0.07)" }}
+              >
                 {upcoming.slice(0, 3).map((a) => (
-                  <div key={a.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                    <div>
-                      <p className="font-medium">{a.shift?.title}</p>
-                      <p className="text-sm text-gray-600">
-                        {new Date(a.shift?.startTime).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
-                        {" · "}
-                        {new Date(a.shift?.startTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                        {" – "}
-                        {new Date(a.shift?.endTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                      </p>
+                  <div
+                    key={a.id}
+                    className="px-6 py-4 hover:bg-white/40 transition-colors"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <p className="font-medium text-gray-900 text-sm">
+                          {a.shift?.title}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          {fmtDate(a.shift?.startTime)} ·{" "}
+                          {fmt(a.shift?.startTime)} – {fmt(a.shift?.endTime)}
+                        </p>
+                        {a.shift?.location && (
+                          <p className="text-xs text-gray-400 mt-0.5">
+                            {a.shift.location}
+                          </p>
+                        )}
+                      </div>
+                      <Link
+                        to="/worker/schedule"
+                        className="text-xs font-medium hover:underline flex-shrink-0 mt-0.5"
+                        style={{ color: "#00523E" }}
+                      >
+                        Details →
+                      </Link>
                     </div>
-                    <Link
-                      to="/worker/schedule"
-                      className="text-sm px-4 py-2 rounded-lg border border-gray-200 hover:border-gray-300"
-                    >
-                      View
-                    </Link>
                   </div>
                 ))}
               </div>
@@ -127,55 +357,298 @@ export default function WorkerDashboard() {
           </div>
         </div>
 
-        {/* Right — quick actions */}
-        <div className="space-y-6">
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
-            <h2 className="text-lg font-medium mb-4">Quick Actions</h2>
-            <div className="space-y-3">
+        {/* ── Right Sidebar — single tall glass card ── */}
+        <div
+          className="rounded-2xl overflow-hidden self-start"
+          style={{
+            background:
+              "linear-gradient(160deg, rgba(255,255,255,0.78) 0%, rgba(242,250,245,0.88) 100%)",
+            backdropFilter: "blur(18px)",
+            WebkitBackdropFilter: "blur(18px)",
+            border: "1px solid rgba(0,82,62,0.11)",
+            boxShadow:
+              "0 8px 40px rgba(0,82,62,0.09), inset 0 1px 0 rgba(255,255,255,0.95)",
+          }}
+        >
+          {/* ── Section 1: Profile ── */}
+          <div className="p-6 relative overflow-hidden">
+            <div
+              className="absolute -top-8 -right-8 w-32 h-32 rounded-full opacity-20 pointer-events-none"
+              style={{
+                background:
+                  "radial-gradient(circle, #00523E 0%, transparent 70%)",
+              }}
+            />
+            <div className="flex flex-col items-center text-center relative z-10">
+              <div
+                className="w-16 h-16 rounded-full flex items-center justify-center mb-3 ring-4 ring-white shadow-md"
+                style={{
+                  background:
+                    "linear-gradient(135deg, #00523E 0%, #00795c 100%)",
+                }}
+              >
+                {user?.avatar_url ? (
+                  <img
+                    src={user.avatar_url}
+                    alt="avatar"
+                    className="w-full h-full rounded-full object-cover"
+                  />
+                ) : (
+                  <span className="text-white text-xl font-semibold">
+                    {(user?.first_name?.[0] ?? "W").toUpperCase()}
+                  </span>
+                )}
+              </div>
+              <h3 className="font-semibold text-gray-900 text-base leading-tight">
+                {user?.first_name ?? "Worker"} {user?.last_name ?? ""}
+              </h3>
+              <p className="text-xs text-gray-500 mt-0.5 capitalize">
+                {user?.role?.toLowerCase() ?? "campus worker"}
+              </p>
+              <div
+                className="mt-3 px-3 py-1 rounded-full text-xs font-medium"
+                style={{
+                  backgroundColor: "rgba(0,82,62,0.08)",
+                  color: "#00523E",
+                }}
+              >
+                {now.toLocaleDateString("en-US", {
+                  weekday: "long",
+                  month: "short",
+                  day: "numeric",
+                })}
+              </div>
+            </div>
+            <div
+              className="mt-5 pt-4 border-t grid grid-cols-3 gap-2 text-center"
+              style={{ borderColor: "rgba(0,82,62,0.1)" }}
+            >
+              <div>
+                <p
+                  className="text-lg font-semibold"
+                  style={{ color: "#00523E" }}
+                >
+                  {upcoming.length}
+                </p>
+                <p className="text-xs text-gray-500 leading-tight">Shifts</p>
+              </div>
+              <div>
+                <p
+                  className="text-lg font-semibold"
+                  style={{ color: "#00523E" }}
+                >
+                  {requests.length}
+                </p>
+                <p className="text-xs text-gray-500 leading-tight">Requests</p>
+              </div>
+              <div>
+                <p
+                  className="text-lg font-semibold"
+                  style={{ color: "#00523E" }}
+                >
+                  {thisWeekHrs}
+                </p>
+                <p className="text-xs text-gray-500 leading-tight">Hrs/wk</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Divider */}
+          <div
+            className="mx-5 border-t"
+            style={{ borderColor: "rgba(0,82,62,0.09)" }}
+          />
+
+          {/* ── Section 2: Quick Actions ── */}
+          <div className="px-5 pt-5 pb-4">
+            <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+              Quick Actions
+            </h2>
+            <div className="space-y-1">
               <Link
                 to="/worker/request-time-off"
-                className="block w-full text-center text-white px-4 py-3 rounded-lg font-medium hover:opacity-90"
-                style={{ backgroundColor: "#00523E" }}
+                className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-green-50 transition-colors group"
               >
-                Request Time Off
+                <div
+                  className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform"
+                  style={{ backgroundColor: "rgba(0,82,62,0.08)" }}
+                >
+                  <CalendarOff size={15} style={{ color: "#00523E" }} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-800">
+                    Request Time Off
+                  </p>
+                  <p className="text-xs text-gray-400">
+                    Submit a leave request
+                  </p>
+                </div>
+                <ChevronRight
+                  size={14}
+                  className="text-gray-300 group-hover:text-gray-500"
+                />
               </Link>
               <Link
                 to="/worker/shift-swap"
-                className="block w-full text-center border border-gray-200 px-4 py-3 rounded-lg hover:border-gray-300 font-medium"
+                className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-blue-50 transition-colors group"
               >
-                Swap Shift
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform bg-blue-50">
+                  <ArrowLeftRight size={15} className="text-blue-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-800">
+                    Swap a Shift
+                  </p>
+                  <p className="text-xs text-gray-400">Trade with a coworker</p>
+                </div>
+                <ChevronRight
+                  size={14}
+                  className="text-gray-300 group-hover:text-gray-500"
+                />
               </Link>
               <Link
                 to="/worker/update-availability"
-                className="block w-full text-center border border-gray-200 px-4 py-3 rounded-lg hover:border-gray-300 font-medium"
+                className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-purple-50 transition-colors group"
               >
-                Update Availability
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform bg-purple-50">
+                  <Settings2 size={15} className="text-purple-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-800">
+                    Update Availability
+                  </p>
+                  <p className="text-xs text-gray-400">Change your schedule</p>
+                </div>
+                <ChevronRight
+                  size={14}
+                  className="text-gray-300 group-hover:text-gray-500"
+                />
               </Link>
             </div>
           </div>
 
-          {requests.length > 0 && (
-            <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-medium">Recent Requests</h2>
-                <Link to="/worker/requests" className="text-xs" style={{ color: "#00523E" }}>View all</Link>
-              </div>
-              <div className="space-y-3">
-                {requests.slice(0, 3).map((r) => (
-                  <div key={r.id} className="flex items-center justify-between text-sm">
-                    <span className="text-gray-700 truncate mr-2">{r.reason ?? "Time off request"}</span>
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium flex-shrink-0 ${
-                      r.status === "APPROVED" ? "bg-green-100 text-green-800" :
-                      r.status === "REJECTED" ? "bg-red-100 text-red-800" :
-                      "bg-yellow-100 text-yellow-800"
-                    }`}>
-                      {r.status}
-                    </span>
-                  </div>
-                ))}
-              </div>
+          {/* Divider */}
+          <div
+            className="mx-5 border-t"
+            style={{ borderColor: "rgba(0,82,62,0.09)" }}
+          />
+
+          {/* ── Section 3: Recent Activity ── */}
+          <div className="px-5 pt-5 pb-6">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                Recent Activity
+              </h2>
+              <Bell size={13} className="text-gray-400" />
             </div>
-          )}
+            <div className="space-y-3">
+              {upcoming.length > 0 && (
+                <div className="flex items-start gap-3">
+                  <div
+                    className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5"
+                    style={{ backgroundColor: "rgba(0,82,62,0.08)" }}
+                  >
+                    <Calendar size={13} style={{ color: "#00523E" }} />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm text-gray-800 font-medium leading-snug">
+                      {upcoming.length} upcoming shift
+                      {upcoming.length !== 1 ? "s" : ""}
+                    </p>
+                    <Link
+                      to="/worker/schedule"
+                      className="text-xs mt-0.5 hover:underline"
+                      style={{ color: "#00523E" }}
+                    >
+                      View schedule →
+                    </Link>
+                  </div>
+                </div>
+              )}
+              {approvedReqs > 0 && (
+                <div className="flex items-start gap-3">
+                  <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5 bg-green-50">
+                    <CheckCircle size={13} className="text-green-600" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm text-gray-800 font-medium leading-snug">
+                      {approvedReqs} request{approvedReqs !== 1 ? "s" : ""}{" "}
+                      approved
+                    </p>
+                    <Link
+                      to="/worker/requests"
+                      className="text-xs mt-0.5 hover:underline"
+                      style={{ color: "#00523E" }}
+                    >
+                      View requests →
+                    </Link>
+                  </div>
+                </div>
+              )}
+              {feedbackItems.length > 0 && (
+                <div className="flex items-start gap-3">
+                  <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5 bg-amber-50">
+                    <MessageSquare size={13} className="text-amber-600" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm text-gray-800 font-medium leading-snug">
+                      New feedback from supervisor
+                    </p>
+                    <Link
+                      to="/worker/feedback"
+                      className="text-xs mt-0.5 hover:underline"
+                      style={{ color: "#00523E" }}
+                    >
+                      View feedback →
+                    </Link>
+                  </div>
+                </div>
+              )}
+              {latestStub && (
+                <div className="flex items-start gap-3">
+                  <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5 bg-blue-50">
+                    <DollarSign size={13} className="text-blue-600" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm text-gray-800 font-medium leading-snug">
+                      Pay stub{" "}
+                      {latestStub.status === "PAID" ? "paid" : "generated"} — $
+                      {Number(latestStub.netPay ?? 0).toFixed(2)}
+                    </p>
+                    <Link
+                      to="/worker/payroll"
+                      className="text-xs mt-0.5 hover:underline"
+                      style={{ color: "#00523E" }}
+                    >
+                      View payroll →
+                    </Link>
+                  </div>
+                </div>
+              )}
+              {upcoming.length === 0 &&
+                approvedReqs === 0 &&
+                feedbackItems.length === 0 &&
+                !latestStub && (
+                  <p className="text-sm text-gray-400 text-center py-3">
+                    No recent activity.
+                  </p>
+                )}
+            </div>
+            <div className="mt-5">
+              <Link
+                to="/worker/requests"
+                className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm font-medium"
+                style={{
+                  background:
+                    "linear-gradient(135deg, #00523E 0%, #00795c 100%)",
+                  color: "#fff",
+                  boxShadow: "0 2px 8px rgba(0,82,62,0.25)",
+                }}
+              >
+                <User size={14} /> My Requests
+              </Link>
+            </div>
+          </div>
         </div>
       </div>
     </div>
