@@ -6,6 +6,7 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.core.logging_config import logger
+from app.core.config import settings
 from app.db import connect_db, disconnect_db
 
 # ── Routers ────────────────────────────────────────────────────────────────────
@@ -35,7 +36,7 @@ app.mount("/uploads", StaticFiles(directory=uploads_dir), name="uploads")
 # ── CORS ───────────────────────────────────────────────────────────────────────
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],   # tighten this to the frontend URL in production
+    allow_origins=settings.allowed_origins_list,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

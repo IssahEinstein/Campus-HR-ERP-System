@@ -29,6 +29,12 @@ class Settings(BaseSettings):
 
     # Frontend (used in invite links)
     FRONTEND_URL: str = "http://localhost:5173"
+    ALLOWED_ORIGINS: str = "http://localhost:5173,http://localhost:3000"
+
+    @property
+    def allowed_origins_list(self) -> list[str]:
+        origins = [origin.strip() for origin in self.ALLOWED_ORIGINS.split(",")]
+        return [origin for origin in origins if origin]
 
 
 settings = Settings()
