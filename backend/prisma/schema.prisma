@@ -216,6 +216,7 @@ model Supervisor {
   approvedTimeOff  TimeOffRequest[]  @relation("TimeOffApprovedBy")
   approvedSwaps    ShiftSwapRequest[] @relation("SwapApprovedBy")
   feedbackGiven    Feedback[] @relation("SupervisorFeedback")
+  locations        SupervisorLocation[]
 
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
