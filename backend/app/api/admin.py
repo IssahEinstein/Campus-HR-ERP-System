@@ -9,6 +9,7 @@ from app.schemas.common import BootstrapResponse, MessageResponse
 from app.schemas.invite import (
     BootstrapAdminRequest,
     DepartmentCreate,
+    DepartmentUpdate,
     InviteAdminRequest,
     InviteSupervisorRequest,
 )
@@ -155,6 +156,25 @@ async def list_departments(
 ):
     """Admin lists all departments."""
     return await department_service.list_departments()
+
+
+@router.patch("/departments/{department_id}", response_model=DepartmentResponse)
+async def rename_department(
+    department_id: str,
+    body: DepartmentUpdate,
+    current_user: Annotated[CurrentUser, Depends(require_role("ADMIN"))],
+):
+    """Admin renames a department."""
+    return await department_service.rename_department(department_id, body.name)
+
+
+@router.delete("/departments/{department_id}", response_model=MessageResponse)
+async def delete_department(
+    department_id: str,
+    current_user: Annotated[CurrentUser, Depends(require_role("ADMIN"))],
+):
+    """Admin deletes an empty department."""
+    return await department_service.delete_department(department_id)
 
 
 @router.delete("/supervisors/{supervisor_id}", response_model=MessageResponse)
