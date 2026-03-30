@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import * as authApi from "../api/auth";
 import { useAuth } from "../context/AuthContext";
+import PasswordInput from "../components/PasswordInput";
 
 const API_ORIGIN = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
@@ -277,41 +278,32 @@ export default function ProfileSettings() {
         }}
       >
         <h2 className="text-lg font-semibold">Change Password</h2>
-        <input
-          type="password"
+        <PasswordInput
           value={currentPassword}
           onChange={(event) => setCurrentPassword(event.target.value)}
           placeholder="Current password"
           className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
           required
-          autoCapitalize="none"
-          autoCorrect="off"
-          spellCheck={false}
+          autoComplete="current-password"
         />
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <input
-            type="password"
+          <PasswordInput
             value={newPassword}
             onChange={(event) => setNewPassword(event.target.value)}
             placeholder="New password"
             className="border border-gray-300 rounded-lg px-3 py-2 text-sm"
             required
             minLength={8}
-            autoCapitalize="none"
-            autoCorrect="off"
-            spellCheck={false}
+            autoComplete="new-password"
           />
-          <input
-            type="password"
+          <PasswordInput
             value={confirmPassword}
             onChange={(event) => setConfirmPassword(event.target.value)}
             placeholder="Confirm new password"
             className="border border-gray-300 rounded-lg px-3 py-2 text-sm"
             required
             minLength={8}
-            autoCapitalize="none"
-            autoCorrect="off"
-            spellCheck={false}
+            autoComplete="new-password"
           />
         </div>
         <button

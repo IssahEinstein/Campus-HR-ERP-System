@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import * as authApi from "../api/auth";
+import PasswordInput from "../components/PasswordInput";
 
 export default function AcceptInvitePage() {
   const [searchParams] = useSearchParams();
@@ -93,8 +94,7 @@ export default function AcceptInvitePage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">New Password</label>
-              <input
-                type="password"
+              <PasswordInput
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
                 autoComplete="new-password"
@@ -106,8 +106,7 @@ export default function AcceptInvitePage() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
-              <input
-                type="password"
+              <PasswordInput
                 value={confirmPassword}
                 onChange={(event) => setConfirmPassword(event.target.value)}
                 autoComplete="new-password"
