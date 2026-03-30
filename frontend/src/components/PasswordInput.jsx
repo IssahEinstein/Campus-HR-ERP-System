@@ -34,13 +34,18 @@ export default function PasswordInput({
       clearTimeout(hideTimerRef.current);
       hideTimerRef.current = null;
     }
-    setIsTemporarilyRevealed(false);
+    setIsTemporarilyRevealed((prev) => (prev ? false : prev));
   };
 
   const handleChange = (event) => {
     const nextValue = event.target.value;
     const previousValue = previousValueRef.current ?? "";
     const nativeInputType = event.nativeEvent?.inputType;
+
+    // Keep parent-controlled form state in sync first to avoid stale submit values.
+    if (onChange) {
+      onChange(event);
+    }
 
     const typedSingleCharacter =
       nextValue.length === previousValue.length + 1
@@ -61,14 +66,18 @@ export default function PasswordInput({
     } else {
       hideNow();
     }
-
-    if (onChange) {
-      onChange(event);
-    }
   };
 
   const handleBlur = (event) => {
-    hideNow();
+    // Defer masking on blur so submit handlers can read the exact latest value first.
+    if (hideTimerRef.current) {
+      clearTimeout(hideTimerRef.current);
+      hideTimerRef.current = null;
+    }
+    setTimeout(() => {
+      setIsTemporarilyRevealed(false);
+    }, 0);
+
     if (onBlur) {
       onBlur(event);
     }

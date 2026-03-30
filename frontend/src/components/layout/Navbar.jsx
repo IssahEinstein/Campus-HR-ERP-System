@@ -328,7 +328,7 @@ export default function Navbar() {
                 {avatarUrl ? (
                   <img
                     src={avatarUrl}
-                    alt="Profile"
+                    alt="Profile picture"
                     className="w-8 h-8 rounded-full object-cover border border-gray-200"
                   />
                 ) : (

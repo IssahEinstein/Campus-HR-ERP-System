@@ -20,6 +20,14 @@ import * as payrollApi from "../../api/payroll";
 import * as timeoffApi from "../../api/timeoff";
 import * as feedbackApi from "../../api/feedback";
 
+const API_ORIGIN = import.meta.env.VITE_API_URL || "http://localhost:8000";
+
+function resolveProfileImageUrl(value) {
+  if (!value) return "";
+  if (value.startsWith("http://") || value.startsWith("https://")) return value;
+  return `${API_ORIGIN}${value.startsWith("/") ? "" : "/"}${value}`;
+}
+
 export default function WorkerDashboard() {
   const { user } = useAuth();
   const [assignments, setAssignments] = useState([]);
@@ -74,6 +82,7 @@ export default function WorkerDashboard() {
   const nextShift = upcoming[0]?.shift;
   const pendingReqs = requests.filter((r) => r.status === "PENDING").length;
   const approvedReqs = requests.filter((r) => r.status === "APPROVED").length;
+  const profileImageUrl = resolveProfileImageUrl(user?.avatar_url);
 
   const fmt = (iso) =>
     new Date(iso).toLocaleTimeString([], {
@@ -387,10 +396,10 @@ export default function WorkerDashboard() {
                     "linear-gradient(135deg, #00523E 0%, #00795c 100%)",
                 }}
               >
-                {user?.avatar_url ? (
+                {profileImageUrl ? (
                   <img
-                    src={user.avatar_url}
-                    alt="avatar"
+                    src={profileImageUrl}
+                    alt="Profile picture"
                     className="w-full h-full rounded-full object-cover"
                   />
                 ) : (

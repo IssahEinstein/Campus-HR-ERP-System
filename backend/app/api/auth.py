@@ -141,7 +141,7 @@ async def upload_avatar(
     current_user: Annotated[CurrentUser, Depends(get_current_user)],
     file: UploadFile = File(...),
 ) -> ProfileResponse:
-    """Upload and set a new avatar image for the signed-in user."""
+    """Upload and set a new profile picture for the signed-in user."""
     content = await file.read()
     return await auth_service.update_avatar(
         current_user=current_user,
@@ -155,5 +155,5 @@ async def upload_avatar(
 async def delete_avatar(
     current_user: Annotated[CurrentUser, Depends(get_current_user)],
 ) -> ProfileResponse:
-    """Remove the signed-in user's avatar and fall back to initials."""
+    """Remove the signed-in user's profile picture and fall back to initials."""
     return await auth_service.remove_avatar(current_user)

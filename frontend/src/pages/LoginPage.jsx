@@ -18,11 +18,19 @@ export default function LoginPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const submittedEmail = String(formData.get("email") ?? "").trim();
+    const submittedPassword = String(formData.get("password") ?? "");
+
+    // Keep controlled state synced with what was actually submitted from the DOM.
+    setEmail(submittedEmail);
+    setPassword(submittedPassword);
+
     setError(null);
     setLoading(true);
-    console.log("📝 [LoginPage] Submitting:", { email: email.trim() });
+    console.log("📝 [LoginPage] Submitting:", { email: submittedEmail });
     try {
-      await login(email.trim(), password);
+      await login(submittedEmail, submittedPassword);
       console.log("✅ [LoginPage] Login successful");
     } catch (err) {
       console.error("❌ [LoginPage] Login error:", err);
@@ -74,6 +82,7 @@ export default function LoginPage() {
               </label>
               <input
                 type="email"
+                name="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -87,6 +96,7 @@ export default function LoginPage() {
                 Password
               </label>
               <PasswordInput
+                name="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required

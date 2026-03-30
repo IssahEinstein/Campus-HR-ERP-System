@@ -63,15 +63,28 @@ export default function ProfileSettings() {
 
   const submitPassword = async (event) => {
     event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    const submittedCurrentPassword = String(
+      formData.get("currentPassword") ?? "",
+    );
+    const submittedNewPassword = String(formData.get("newPassword") ?? "");
+    const submittedConfirmPassword = String(
+      formData.get("confirmPassword") ?? "",
+    );
+
+    setCurrentPassword(submittedCurrentPassword);
+    setNewPassword(submittedNewPassword);
+    setConfirmPassword(submittedConfirmPassword);
+
     setError("");
     setMessage("");
 
-    if (newPassword.length < 8) {
+    if (submittedNewPassword.length < 8) {
       setError("New password must be at least 8 characters.");
       return;
     }
 
-    if (newPassword !== confirmPassword) {
+    if (submittedNewPassword !== submittedConfirmPassword) {
       setError("New password and confirmation do not match.");
       return;
     }
@@ -79,8 +92,8 @@ export default function ProfileSettings() {
     setSavingPassword(true);
     try {
       await authApi.changePassword({
-        current_password: currentPassword,
-        new_password: newPassword,
+        current_password: submittedCurrentPassword,
+        new_password: submittedNewPassword,
       });
       setCurrentPassword("");
       setNewPassword("");
@@ -211,8 +224,8 @@ export default function ProfileSettings() {
             Accepted: JPG, PNG, WEBP, GIF (max 5MB)
           </p>
           <p className="text-xs text-gray-500">
-            Uploaded images are center-cropped and resized for consistent
-            avatars.
+            Uploaded images are center-cropped and resized for a consistent
+            profile picture.
           </p>
         </div>
       </div>
@@ -279,6 +292,7 @@ export default function ProfileSettings() {
       >
         <h2 className="text-lg font-semibold">Change Password</h2>
         <PasswordInput
+            name="currentPassword"
           value={currentPassword}
           onChange={(event) => setCurrentPassword(event.target.value)}
           placeholder="Current password"
@@ -288,6 +302,7 @@ export default function ProfileSettings() {
         />
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <PasswordInput
+              name="newPassword"
             value={newPassword}
             onChange={(event) => setNewPassword(event.target.value)}
             placeholder="New password"
@@ -297,6 +312,7 @@ export default function ProfileSettings() {
             autoComplete="new-password"
           />
           <PasswordInput
+              name="confirmPassword"
             value={confirmPassword}
             onChange={(event) => setConfirmPassword(event.target.value)}
             placeholder="Confirm new password"
