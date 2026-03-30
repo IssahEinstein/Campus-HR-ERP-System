@@ -14,6 +14,7 @@ async def get_user_by_email(email: str) -> Optional[dict]:
             "adminProfile": True,
             "supervisorProfile": True,
             "workerProfile": True,
+            "adminInvite": True,
             "supervisorInvite": True,
         },
     )
