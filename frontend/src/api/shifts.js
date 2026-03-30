@@ -20,5 +20,10 @@ export const updateShift = (id, body) =>
 export const deleteShift = (id) =>
   client.delete(`/shifts/${id}`);
 
-export const assignWorker = (shiftId, workerId) =>
-  client.post(`/shifts/${shiftId}/assign`, { worker_id: workerId }).then((r) => r.data);
+export const assignWorker = (shiftId, workerId, applyToSeries = false) =>
+  client
+    .post(`/shifts/${shiftId}/assign`, {
+      worker_id: workerId,
+      apply_to_series: applyToSeries,
+    })
+    .then((r) => r.data);

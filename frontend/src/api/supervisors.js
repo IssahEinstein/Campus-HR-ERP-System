@@ -14,3 +14,12 @@ export const resendWorkerInvite = (workerId) =>
 
 export const deleteWorker = (workerId) =>
   client.delete(`/supervisor/workers/${workerId}`).then((r) => r.data);
+
+export const listLocations = () =>
+  client.get("/supervisor/locations").then((r) => r.data);
+
+export const createLocation = (name) =>
+  client.post("/supervisor/locations", { name }).then((r) => r.data);
+
+export const deleteLocation = (locationId) =>
+  client.delete(`/supervisor/locations/${locationId}`).then((r) => r.data);

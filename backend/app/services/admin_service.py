@@ -4,6 +4,7 @@ from app.auth.password import hash_password
 from app.core.config import settings
 from app.db import get_db
 from app.schemas.invite import BootstrapAdminRequest
+from app.schemas.common import SemesterSettingsUpdate
 
 db = get_db()
 
@@ -81,4 +82,36 @@ async def delete_supervisor(supervisor_id: str) -> dict:
     return {
         "message": "Supervisor deleted successfully",
         "email": supervisor.user.email,
+    }
+
+
+async def get_semester_settings() -> dict:
+    rows = await db.query_raw(
+        'SELECT "semesterStartDate", "semesterEndDate" FROM "SemesterSetting" WHERE "key" = \'default\' LIMIT 1'
+    )
+    if not rows:
+        raise HTTPException(status_code=404, detail="Semester dates are not configured")
+    settings_row = rows[0]
+
+    return {
+        "semester_start_date": settings_row["semesterStartDate"],
+        "semester_end_date": settings_row["semesterEndDate"],
+    }
+
+
+async def upsert_semester_settings(body: SemesterSettingsUpdate) -> dict:
+    start_iso = body.semester_start_date.isoformat()
+    end_iso = body.semester_end_date.isoformat()
+    await db.execute_raw(
+        'INSERT INTO "SemesterSetting" ("key", "semesterStartDate", "semesterEndDate", "createdAt", "updatedAt") '
+        f"VALUES ('default', '{start_iso}', '{end_iso}', NOW(), NOW()) "
+        'ON CONFLICT ("key") DO UPDATE SET '
+        f'"semesterStartDate" = \'{start_iso}\', '
+        f'"semesterEndDate" = \'{end_iso}\', '
+        '"updatedAt" = NOW()'
+    )
+
+    return {
+        "semester_start_date": body.semester_start_date,
+        "semester_end_date": body.semester_end_date,
     }

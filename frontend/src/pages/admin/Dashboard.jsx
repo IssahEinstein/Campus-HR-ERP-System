@@ -38,9 +38,24 @@ export default function AdminDashboard() {
   const [editingDepartmentName, setEditingDepartmentName] = useState("");
   const [renamingDepartmentId, setRenamingDepartmentId] = useState("");
   const [deletingDepartmentId, setDeletingDepartmentId] = useState("");
+  const [semesterStartDate, setSemesterStartDate] = useState("");
+  const [semesterEndDate, setSemesterEndDate] = useState("");
+  const [savingSemester, setSavingSemester] = useState(false);
   const [adminQuery, setAdminQuery] = useState("");
   const [adminStatusFilter, setAdminStatusFilter] = useState("all");
   const [adminSort, setAdminSort] = useState("newest");
+
+  const applySemesterSettings = (semester) => {
+    if (!semester) {
+      setSemesterStartDate("");
+      setSemesterEndDate("");
+      return;
+    }
+    const start = semester.semesterStartDate ?? semester.semester_start_date;
+    const end = semester.semesterEndDate ?? semester.semester_end_date;
+    setSemesterStartDate(start ? String(start).slice(0, 10) : "");
+    setSemesterEndDate(end ? String(end).slice(0, 10) : "");
+  };
   const [toasts, setToasts] = useState([]);
 
   const pushToast = (text, type = "success") => {
@@ -54,16 +69,48 @@ export default function AdminDashboard() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [a, s, w, d] = await Promise.all([
+      const [adminsResult, supervisorsResult, workersResult, departmentsResult] =
+        await Promise.allSettled([
         adminApi.listAdmins(),
         adminApi.listSupervisors(),
         adminApi.listAllWorkers(),
         adminApi.listDepartments(),
       ]);
-      setAdmins(a);
-      setSupervisors(s);
-      setWorkers(w);
-      setDepartments(d);
+
+      if (adminsResult.status === "fulfilled") setAdmins(adminsResult.value);
+      else setAdmins([]);
+
+      if (supervisorsResult.status === "fulfilled")
+        setSupervisors(supervisorsResult.value);
+      else setSupervisors([]);
+
+      if (workersResult.status === "fulfilled") setWorkers(workersResult.value);
+      else setWorkers([]);
+
+      if (departmentsResult.status === "fulfilled")
+        setDepartments(departmentsResult.value);
+      else setDepartments([]);
+
+      const primaryFailures = [
+        adminsResult,
+        supervisorsResult,
+        workersResult,
+        departmentsResult,
+      ].filter((result) => result.status === "rejected");
+      if (primaryFailures.length > 0) {
+        const firstError = primaryFailures[0].reason;
+        pushToast(
+          firstError?.response?.data?.detail ?? "Some admin data failed to load.",
+          "error",
+        );
+      }
+
+      try {
+        const semester = await adminApi.getSemesterSettings();
+        applySemesterSettings(semester);
+      } catch {
+        applySemesterSettings(null);
+      }
     } catch (e) {
       pushToast(
         e.response?.data?.detail ?? "Failed to load admin data.",
@@ -284,6 +331,31 @@ export default function AdminDashboard() {
     }
   };
 
+  const saveSemesterSettings = async (event) => {
+    event.preventDefault();
+    if (!semesterStartDate || !semesterEndDate) {
+      pushToast("Set both semester start and end dates.", "error");
+      return;
+    }
+
+    setSavingSemester(true);
+    try {
+      const semester = await adminApi.updateSemesterSettings({
+        semester_start_date: new Date(`${semesterStartDate}T00:00:00`).toISOString(),
+        semester_end_date: new Date(`${semesterEndDate}T23:59:59`).toISOString(),
+      });
+      applySemesterSettings(semester);
+      pushToast("Semester dates saved.");
+    } catch (e2) {
+      pushToast(
+        e2.response?.data?.detail ?? "Failed to save semester dates.",
+        "error",
+      );
+    } finally {
+      setSavingSemester(false);
+    }
+  };
+
   const filteredAdmins = useMemo(() => {
     const query = adminQuery.trim().toLowerCase();
     let rows = admins.filter((a) => {
@@ -493,6 +565,53 @@ export default function AdminDashboard() {
             style={{ backgroundColor: "#00523E" }}
           >
             {savingDept ? "Creating..." : "Create"}
+          </button>
+        </form>
+
+        <form
+          onSubmit={saveSemesterSettings}
+          className="rounded-2xl p-6 space-y-4"
+          style={{
+            background:
+              "linear-gradient(160deg, rgba(255,255,255,0.78) 0%, rgba(242,250,245,0.88) 100%)",
+            backdropFilter: "blur(18px)",
+            WebkitBackdropFilter: "blur(18px)",
+            border: "1px solid rgba(0,82,62,0.11)",
+            boxShadow:
+              "0 8px 40px rgba(0,82,62,0.09), inset 0 1px 0 rgba(255,255,255,0.95)",
+          }}
+        >
+          <h2 className="text-base font-semibold text-gray-800">Semester Dates</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <input
+              type="date"
+              value={semesterStartDate}
+              onChange={(e) => setSemesterStartDate(e.target.value)}
+              className="rounded-xl px-3 py-2 text-sm"
+              style={{
+                border: "1px solid rgba(0,82,62,0.18)",
+                background: "rgba(255,255,255,0.7)",
+              }}
+              required
+            />
+            <input
+              type="date"
+              value={semesterEndDate}
+              onChange={(e) => setSemesterEndDate(e.target.value)}
+              className="rounded-xl px-3 py-2 text-sm"
+              style={{
+                border: "1px solid rgba(0,82,62,0.18)",
+                background: "rgba(255,255,255,0.7)",
+              }}
+              required
+            />
+          </div>
+          <button
+            disabled={savingSemester}
+            className="px-4 py-2 rounded-xl text-sm font-medium text-white hover:opacity-90 disabled:opacity-60"
+            style={{ backgroundColor: "#00523E" }}
+          >
+            {savingSemester ? "Saving..." : "Save Semester Dates"}
           </button>
         </form>
 

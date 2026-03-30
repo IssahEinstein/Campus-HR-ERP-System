@@ -17,6 +17,7 @@ export default function SupervisorApprovals() {
   const [acting, setActing] = useState(null);
   const [denyNote, setDenyNote] = useState({});
   const [denyOpen, setDenyOpen] = useState(null);
+  const [permanentSwap, setPermanentSwap] = useState({});
   const navigate = useNavigate();
 
   const load = async () => {
@@ -44,7 +45,13 @@ export default function SupervisorApprovals() {
     try {
       if (item._type === "TIMEOFF")
         await timeoffApi.reviewTimeOff(item.id, "APPROVED", "");
-      else await shiftswapApi.reviewSwap(item.id, "APPROVED", "");
+      else
+        await shiftswapApi.reviewSwap(
+          item.id,
+          "APPROVED",
+          "",
+          permanentSwap[item.id] ?? Boolean(item.preferredPermanent),
+        );
       await load();
     } catch (e) {
       console.error(e);
@@ -192,10 +199,38 @@ export default function SupervisorApprovals() {
                             {item.reason}
                           </div>
                         )}
+                        {item._type === "SWAP" && (
+                          <div className="text-xs text-gray-500 mt-1">
+                            Requested mode:{" "}
+                            <span className="font-medium text-gray-700">
+                              {item.preferredPermanent
+                                ? "Permanent recurring"
+                                : "One-time"}
+                            </span>
+                          </div>
+                        )}
                       </div>
 
                       {!showDeny && (
                         <div className="flex gap-2 shrink-0">
+                          {item._type === "SWAP" && (
+                            <label className="flex items-center gap-2 text-xs text-gray-600 mr-2">
+                              <input
+                                type="checkbox"
+                                checked={
+                                  permanentSwap[item.id]
+                                  ?? Boolean(item.preferredPermanent)
+                                }
+                                onChange={(e) =>
+                                  setPermanentSwap((prev) => ({
+                                    ...prev,
+                                    [item.id]: e.target.checked,
+                                  }))
+                                }
+                              />
+                              Apply permanently for recurring shifts
+                            </label>
+                          )}
                           <button
                             onClick={() => approve(item)}
                             disabled={isActing}

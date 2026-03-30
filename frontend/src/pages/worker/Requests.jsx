@@ -316,6 +316,14 @@ export default function WorkerRequests() {
                           </span>
                         </span>
                       )}
+                      {req._type === "SWAP" && (
+                        <span>
+                          Requested Mode:{" "}
+                          <span className="text-gray-700">
+                            {req.preferredPermanent ? "Permanent recurring" : "One-time"}
+                          </span>
+                        </span>
+                      )}
                     </div>
 
                     {req.notes && (

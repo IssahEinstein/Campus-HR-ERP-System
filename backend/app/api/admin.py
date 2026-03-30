@@ -5,7 +5,12 @@ from fastapi import APIRouter, Depends, Header
 from app.auth.dependencies import require_role
 from app.db import get_db
 from app.schemas.auth import CurrentUser
-from app.schemas.common import BootstrapResponse, MessageResponse
+from app.schemas.common import (
+    BootstrapResponse,
+    MessageResponse,
+    SemesterSettingsResponse,
+    SemesterSettingsUpdate,
+)
 from app.schemas.invite import (
     BootstrapAdminRequest,
     DepartmentCreate,
@@ -184,3 +189,20 @@ async def delete_supervisor(
 ):
     """Admin deletes a supervisor account."""
     return await admin_service.delete_supervisor(supervisor_id)
+
+
+@router.get("/semester-settings", response_model=SemesterSettingsResponse)
+async def get_semester_settings(
+    current_user: Annotated[CurrentUser, Depends(require_role("ADMIN"))],
+):
+    """Admin reads semester start/end dates used by recurring shifts."""
+    return await admin_service.get_semester_settings()
+
+
+@router.put("/semester-settings", response_model=SemesterSettingsResponse)
+async def update_semester_settings(
+    body: SemesterSettingsUpdate,
+    current_user: Annotated[CurrentUser, Depends(require_role("ADMIN"))],
+):
+    """Admin sets semester start/end dates used by recurring shifts."""
+    return await admin_service.upsert_semester_settings(body)

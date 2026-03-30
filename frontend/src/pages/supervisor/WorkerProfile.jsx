@@ -3,6 +3,8 @@ import { useParams, Link } from "react-router-dom";
 import * as supervisorsApi from "../../api/supervisors";
 import * as attendanceApi from "../../api/attendance";
 import * as payrollApi from "../../api/payroll";
+import * as availabilityApi from "../../api/availability";
+import * as timeoffApi from "../../api/timeoff";
 import FeedbackModal from "../../components/modals/FeedbackModal";
 
 function normalizeWorker(w) {
@@ -22,6 +24,8 @@ export default function WorkerProfile() {
   const [worker, setWorker] = useState(null);
   const [attendance, setAttendance] = useState([]);
   const [payStubs, setPayStubs] = useState([]);
+  const [availability, setAvailability] = useState([]);
+  const [approvedTimeOff, setApprovedTimeOff] = useState([]);
   const [loading, setLoading] = useState(true);
   const [feedback, setFeedback] = useState(false);
 
@@ -31,12 +35,18 @@ export default function WorkerProfile() {
       supervisorsApi.myWorkers(),
       attendanceApi.workerAttendance(workerId),
       payrollApi.workerPayStubs(workerId),
+      availabilityApi.workerAvailability(workerId),
+      timeoffApi.workerTimeOff(workerId),
     ])
-      .then(([workers, att, stubs]) => {
+      .then(([workers, att, stubs, slots, requests]) => {
         const normalized = workers.map(normalizeWorker);
         setWorker(normalized.find((w) => w.id === workerId) ?? null);
         setAttendance(att);
         setPayStubs(stubs);
+        setAvailability(slots);
+        setApprovedTimeOff(
+          requests.filter((request) => String(request.status) === "APPROVED"),
+        );
       })
       .catch(console.error)
       .finally(() => setLoading(false));
@@ -54,6 +64,15 @@ export default function WorkerProfile() {
       minute: "2-digit",
     });
   const currency = (n) => `$${(Number(n) || 0).toFixed(2)}`;
+  const dayNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  const fmtDateTime = (iso) =>
+    new Date(iso).toLocaleString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
 
   if (loading)
     return (
@@ -182,6 +201,61 @@ export default function WorkerProfile() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div
+          className="rounded-2xl overflow-hidden"
+          style={{
+            background:
+              "linear-gradient(160deg, rgba(255,255,255,0.78) 0%, rgba(242,250,245,0.88) 100%)",
+            backdropFilter: "blur(18px)",
+            WebkitBackdropFilter: "blur(18px)",
+            border: "1px solid rgba(0,82,62,0.11)",
+            boxShadow:
+              "0 8px 40px rgba(0,82,62,0.09), inset 0 1px 0 rgba(255,255,255,0.95)",
+          }}
+        >
+          <div
+            className="p-6 border-b"
+            style={{ borderColor: "rgba(0,82,62,0.09)" }}
+          >
+            <h2 className="text-lg font-semibold">Availability</h2>
+          </div>
+          {availability.length === 0 ? (
+            <div className="p-8 text-center text-gray-400 text-sm">
+              No availability set.
+            </div>
+          ) : (
+            <div
+              className="divide-y"
+              style={{ borderColor: "rgba(0,82,62,0.07)" }}
+            >
+              {availability.map((slot) => (
+                <div key={slot.id} className="px-6 py-3 text-sm">
+                  <div className="text-gray-700">
+                    {dayNames[slot.dayOfWeek] ?? "Day"} {slot.startTime} - {slot.endTime}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          <div
+            className="p-6 border-t"
+            style={{ borderColor: "rgba(0,82,62,0.09)" }}
+          >
+            <h3 className="text-sm font-semibold text-gray-700 mb-2">Approved Time-Off</h3>
+            {approvedTimeOff.length === 0 ? (
+              <p className="text-sm text-gray-400">No approved time-off requests.</p>
+            ) : (
+              <div className="space-y-2">
+                {approvedTimeOff.map((request) => (
+                  <div key={request.id} className="text-sm text-gray-600">
+                    {fmtDateTime(request.startDate)} to {fmtDateTime(request.endDate)}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* Attendance */}
         <div
           className="rounded-2xl overflow-hidden"

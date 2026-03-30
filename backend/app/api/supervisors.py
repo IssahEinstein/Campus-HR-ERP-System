@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 
 from app.auth.dependencies import require_role
 from app.db import get_db
@@ -8,7 +8,11 @@ from app.schemas.auth import CurrentUser
 from app.schemas.common import MessageResponse
 from app.schemas.invite import InviteWorkerRequest
 from app.schemas.profiles import SupervisorResponse, WorkerResponse
-from app.services import invite_service
+from app.schemas.supervisor_location import (
+    SupervisorLocationCreate,
+    SupervisorLocationResponse,
+)
+from app.services import invite_service, supervisor_location_service
 
 router = APIRouter(prefix="/supervisor", tags=["Supervisor"])
 _db = get_db()
@@ -53,6 +57,8 @@ async def list_my_workers(
 ):
     """List all workers in this supervisor's department."""
     supervisor = await _db.supervisor.find_unique(where={"id": current_user.profile_id})
+    if not supervisor:
+        raise HTTPException(status_code=404, detail="Supervisor profile not found")
     return await _db.worker.find_many(
         where={"departmentId": supervisor.departmentId},
         include={"user": True},
@@ -65,7 +71,42 @@ async def get_my_profile(
     current_user: Annotated[CurrentUser, Depends(require_role("SUPERVISOR"))],
 ):
     """Supervisor views their own profile."""
-    return await _db.supervisor.find_unique(
+    supervisor = await _db.supervisor.find_unique(
         where={"id": current_user.profile_id},
         include={"user": True, "department": True},
+    )
+    if not supervisor:
+        raise HTTPException(status_code=404, detail="Supervisor profile not found")
+    return supervisor
+
+
+@router.get("/locations", response_model=list[SupervisorLocationResponse])
+async def list_locations(
+    current_user: Annotated[CurrentUser, Depends(require_role("SUPERVISOR"))],
+):
+    """List custom shift locations saved by this supervisor."""
+    return await supervisor_location_service.list_locations(current_user.profile_id)
+
+
+@router.post("/locations", status_code=201, response_model=SupervisorLocationResponse)
+async def create_location(
+    body: SupervisorLocationCreate,
+    current_user: Annotated[CurrentUser, Depends(require_role("SUPERVISOR"))],
+):
+    """Create a custom shift location for this supervisor."""
+    return await supervisor_location_service.create_location(
+        supervisor_id=current_user.profile_id,
+        name=body.name,
+    )
+
+
+@router.delete("/locations/{location_id}", response_model=MessageResponse)
+async def delete_location(
+    location_id: str,
+    current_user: Annotated[CurrentUser, Depends(require_role("SUPERVISOR"))],
+):
+    """Delete one custom location created by this supervisor."""
+    return await supervisor_location_service.delete_location(
+        supervisor_id=current_user.profile_id,
+        location_id=location_id,
     )

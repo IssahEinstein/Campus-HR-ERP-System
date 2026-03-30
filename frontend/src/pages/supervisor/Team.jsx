@@ -38,10 +38,17 @@ export default function SupervisorTeam() {
 
   const loadWorkers = () => {
     setLoading(true);
+    setFormError("");
     supervisorsApi
       .myWorkers()
       .then((data) => setWorkers(data.map(normalizeWorker)))
-      .catch(console.error)
+      .catch((error) => {
+        console.error(error);
+        setWorkers([]);
+        setFormError(
+          error.response?.data?.detail ?? "Failed to load team members.",
+        );
+      })
       .finally(() => setLoading(false));
   };
 

@@ -78,6 +78,7 @@ async def review_swap(
         req = await _db.shiftswaprequest.find_unique(where={"id": request_id})
         if req:
             await ensure_supervisor_owns_worker(current_user.profile_id, req.initiatedById)
+            await ensure_supervisor_owns_worker(current_user.profile_id, req.targetWorkerId)
     return await shiftswap_service.review_swap_request(
         request_id, body, supervisor_id=current_user.profile_id
     )

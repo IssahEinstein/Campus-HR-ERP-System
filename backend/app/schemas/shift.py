@@ -25,6 +25,8 @@ class ShiftCreate(BaseModel):
     start_time: datetime
     end_time: datetime
     expected_hours: Optional[float] = None
+    repeat_weekly: bool = False
+    repeat_end_date: Optional[datetime] = None
 
     @field_validator("end_time")
     @classmethod
@@ -33,6 +35,14 @@ class ShiftCreate(BaseModel):
         if start_time and end_time <= start_time:
             raise ValueError("end_time must be after start_time")
         return end_time
+
+    @field_validator("repeat_end_date")
+    @classmethod
+    def repeat_end_after_start(cls, value, info):
+        start_time = info.data.get("start_time")
+        if value and start_time and value <= start_time:
+            raise ValueError("repeat_end_date must be after start_time")
+        return value
 
 
 class ShiftUpdate(BaseModel):
@@ -47,6 +57,7 @@ class ShiftUpdate(BaseModel):
 
 class AssignWorkerRequest(BaseModel):
     worker_id: str
+    apply_to_series: bool = False
 
 
 class ShiftResponse(BaseModel):

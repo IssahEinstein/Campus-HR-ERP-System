@@ -35,3 +35,9 @@ export const resendAdminInvite = (adminProfileId) =>
 
 export const deleteSupervisor = (supervisorId) =>
   client.delete(`/admin/supervisors/${supervisorId}`).then((r) => r.data);
+
+export const getSemesterSettings = () =>
+  client.get("/admin/semester-settings").then((r) => r.data);
+
+export const updateSemesterSettings = (body) =>
+  client.put("/admin/semester-settings", body).then((r) => r.data);

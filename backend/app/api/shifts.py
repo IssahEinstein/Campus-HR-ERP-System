@@ -88,4 +88,9 @@ async def assign_worker(
     """Supervisor assigns a worker (from their department) to one of their shifts."""
     await ensure_shift_belongs_to_supervisor(current_user.profile_id, shift_id)
     await ensure_supervisor_owns_worker(current_user.profile_id, body.worker_id)
-    return await shift_service.assign_worker(shift_id, body.worker_id, current_user.profile_id)
+    return await shift_service.assign_worker(
+        shift_id,
+        body.worker_id,
+        current_user.profile_id,
+        apply_to_series=body.apply_to_series,
+    )
