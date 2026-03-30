@@ -258,6 +258,59 @@ MIT License
 
 ---
 
+## Deploy Backend On Render
+
+You can deploy this backend as a Render Web Service either from `render.yaml` (Blueprint) or manually in the dashboard.
+
+### Option A: Blueprint (recommended)
+
+1. Push this repository to GitHub.
+2. In Render, click **New +** -> **Blueprint**.
+3. Select this repository.
+4. Render reads `render.yaml` at repo root and creates the `campus-hr-backend` service.
+5. Fill in required env vars (those marked `sync: false`) in Render before first deploy.
+
+### Option B: Manual Web Service setup
+
+1. In Render, create a **New Web Service** from your GitHub repo.
+2. Configure:
+	- Root Directory: `backend`
+	- Runtime: `Python`
+	- Build Command: `pip install -r requirements.txt && prisma generate`
+	- Start Command: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+	- Health Check Path: `/health`
+3. In **Environment Variables**, add values from `backend/.env.render.example`.
+4. In **Pre-Deploy Command**, set: `prisma migrate deploy`
+
+### Required environment variables
+
+- `DATABASE_URL`
+- `DIRECT_URL`
+- `SECRET_KEY`
+- `ALGORITHM` (default `HS256`)
+- `ACCESS_TOKEN_EXPIRE_MINUTES` (default `30`)
+- `REFRESH_TOKEN_EXPIRE_DAYS` (default `7`)
+- `FRONTEND_URL`
+
+### Optional variables
+
+- `ADMIN_BOOTSTRAP_KEY`
+- `SMTP_HOST`
+- `SMTP_PORT`
+- `SMTP_USER`
+- `SMTP_PASSWORD`
+- `SMTP_FROM`
+
+### Verify deployment
+
+- Health endpoint: `https://<your-service>.onrender.com/health`
+- Swagger docs: `https://<your-service>.onrender.com/docs`
+
+### Security note
+
+If any secrets were ever committed to `.env`, rotate them immediately (DB password, SMTP credentials, JWT secret).
+
+
 🧭 Roadmap
 
 • Analytics + reporting
