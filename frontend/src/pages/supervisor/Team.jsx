@@ -41,13 +41,18 @@ export default function SupervisorTeam() {
     setFormError("");
     return supervisorsApi
       .myWorkers()
-      .then((data) => setWorkers(data.map(normalizeWorker)))
+      .then((data) => {
+        const normalized = data.map(normalizeWorker);
+        setWorkers(normalized);
+        return normalized;
+      })
       .catch((error) => {
         console.error(error);
         setWorkers([]);
         setFormError(
           error.response?.data?.detail ?? "Failed to load team members.",
         );
+        return [];
       })
       .finally(() => setLoading(false));
   };
@@ -59,6 +64,18 @@ export default function SupervisorTeam() {
   const handleInviteInput = (event) => {
     const { name, value } = event.target;
     setInviteForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const resetInviteForm = () => {
+    setInviteForm({
+      first_name: "",
+      last_name: "",
+      email: "",
+      worker_id: "",
+      student_id: "",
+      role: "WORKER",
+    });
+    setShowInviteForm(false);
   };
 
   const handleInviteSubmit = async (event) => {
@@ -79,15 +96,7 @@ export default function SupervisorTeam() {
       } else {
         setFormMessage(message);
       }
-      setInviteForm({
-        first_name: "",
-        last_name: "",
-        email: "",
-        worker_id: "",
-        student_id: "",
-        role: "WORKER",
-      });
-      setShowInviteForm(false);
+      resetInviteForm();
       loadWorkers();
     } catch (requestError) {
       const timedOut =
@@ -95,10 +104,26 @@ export default function SupervisorTeam() {
         String(requestError?.message ?? "").toLowerCase().includes("timeout");
 
       if (timedOut) {
-        setFormError(
-          "Invite request timed out. The worker may still have been created; wait a moment and check the team list before retrying.",
-        );
-        loadWorkers();
+        const workersAfterTimeout = await loadWorkers();
+        const submittedEmail = String(inviteForm.email ?? "")
+          .trim()
+          .toLowerCase();
+        const created = Array.isArray(workersAfterTimeout)
+          ? workersAfterTimeout.some(
+              (w) => String(w?.email ?? "").trim().toLowerCase() === submittedEmail,
+            )
+          : false;
+
+        if (created) {
+          setFormMessage(
+            "Invite request timed out, but the worker was created. Invite processing may still be running.",
+          );
+          resetInviteForm();
+        } else {
+          setFormError(
+            "Invite request timed out. Worker creation was not confirmed; please retry once.",
+          );
+        }
       } else {
       setFormError(
         requestError.response?.data?.detail ?? "Failed to create worker.",
