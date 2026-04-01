@@ -85,9 +85,17 @@ async def send_invite_email(to: str, name: str, role: str, invite_link: str) -> 
     """
 
     if not settings.SMTP_FROM or not settings.SMTP_USER or not settings.SMTP_PASSWORD:
-        # Email not configured — print the link so it's visible in dev logs
-        print(f"[DEV] Invite link for {name} ({to}): {invite_link}")
-        return
+        is_local_frontend = settings.FRONTEND_URL.startswith("http://localhost") or settings.FRONTEND_URL.startswith("http://127.0.0.1")
+        if is_local_frontend:
+            # Local dev fallback: keep link visible when SMTP is intentionally unset.
+            print(f"[DEV] Invite link for {name} ({to}): {invite_link}")
+            return
+
+        raise EmailDeliveryError(
+            recipient=to,
+            reason="SMTP is not fully configured (SMTP_FROM/SMTP_USER/SMTP_PASSWORD)",
+            transient=False,
+        )
 
     def _send_once() -> None:
         msg = MIMEMultipart("alternative")
