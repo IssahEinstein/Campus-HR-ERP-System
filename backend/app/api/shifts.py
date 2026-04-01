@@ -40,11 +40,7 @@ async def my_shift_assignments(
     current_user: Annotated[CurrentUser, Depends(require_role("WORKER"))],
 ):
     """Worker views all their shift assignments."""
-    return await _db.shiftassignment.find_many(
-        where={"workerId": current_user.profile_id},
-        include={"shift": True},
-        order={"createdAt": "desc"},
-    )
+    return await shift_service.list_worker_assignments(current_user.profile_id)
 
 
 @router.get("/{shift_id}", response_model=ShiftResponse)

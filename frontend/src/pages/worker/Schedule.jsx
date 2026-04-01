@@ -23,6 +23,33 @@ export default function WorkerSchedule() {
       .finally(() => setLoading(false));
   }, []);
 
+  const applyAttendanceRecord = (record) => {
+    if (!selected || !record) {
+      return;
+    }
+
+    const assignmentId = selected.id;
+    setAssignments((prev) =>
+      prev.map((a) =>
+        a.id === assignmentId
+          ? {
+              ...a,
+              checkInRecord: record,
+            }
+          : a,
+      ),
+    );
+
+    setSelected((prev) =>
+      prev && prev.id === assignmentId
+        ? {
+            ...prev,
+            checkInRecord: record,
+          }
+        : prev,
+    );
+  };
+
   const now = new Date();
 
   const upcoming = assignments
@@ -237,7 +264,11 @@ export default function WorkerSchedule() {
                 style={{ borderColor: "rgba(0,82,62,0.07)" }}
               >
                 {past.slice(0, 5).map((a) => (
-                  <div key={a.id} className="p-6">
+                  <div
+                    key={a.id}
+                    className="p-6 hover:bg-white/40 transition-colors cursor-pointer"
+                    onClick={() => setSelected(a)}
+                  >
                     <div className="flex items-start justify-between">
                       <div>
                         <h3 className="font-medium text-gray-700">
@@ -251,6 +282,18 @@ export default function WorkerSchedule() {
                       <span className="px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-500">
                         {a.status.toLowerCase()}
                       </span>
+                    </div>
+                    <div className="mt-3 text-sm text-gray-600">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelected(a);
+                        }}
+                        className="hover:underline"
+                        style={{ color: "#00523E" }}
+                      >
+                        View Details →
+                      </button>
                     </div>
                   </div>
                 ))}
@@ -413,6 +456,8 @@ export default function WorkerSchedule() {
         <ShiftDetailsModal
           assignment={selected}
           onClose={() => setSelected(null)}
+          onCheckedIn={applyAttendanceRecord}
+          onCheckedOut={applyAttendanceRecord}
         />
       )}
     </div>

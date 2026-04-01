@@ -98,3 +98,20 @@ class AssignmentResponse(BaseModel):
     status: AssignmentStatus
     created_at: datetime
     shift: Optional[ShiftResponse] = None
+    check_in_record: Optional["AssignmentAttendanceResponse"] = None
+
+
+class AssignmentAttendanceResponse(BaseModel):
+    model_config = ConfigDict(
+        from_attributes=True,
+        alias_generator=to_camel,
+        populate_by_name=True,
+    )
+
+    id: str
+    worker_id: str
+    shift_assignment_id: str
+    checked_in_at: datetime
+    checked_out_at: Optional[datetime] = None
+    hours_worked: Optional[float] = None
+    notes: Optional[str] = None

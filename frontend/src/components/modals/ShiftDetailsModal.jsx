@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   X, MapPin, Clock, Phone, Mail, FileText,
   CheckCircle, LogIn, LogOut, AlertTriangle,
@@ -9,9 +9,11 @@ export default function ShiftDetailsModal({ assignment, onClose, onCheckedIn, on
   const shift = assignment?.shift ?? assignment;
   const [loading, setLoading] = useState(false);
   const [error, setError]   = useState(null);
+  const [attendanceRecord, setAttendanceRecord] = useState(assignment?.checkInRecord ?? null);
 
-  // Find an existing check-in record on the assignment (if passed through)
-  const attendanceRecord = assignment?.checkInRecord ?? null;
+  useEffect(() => {
+    setAttendanceRecord(assignment?.checkInRecord ?? null);
+  }, [assignment]);
 
   const isToday = shift?.startTime
     ? new Date(shift.startTime).toDateString() === new Date().toDateString()
@@ -21,8 +23,8 @@ export default function ShiftDetailsModal({ assignment, onClose, onCheckedIn, on
     setLoading(true); setError(null);
     try {
       const record = await attendanceApi.checkIn(assignment.id);
+      setAttendanceRecord(record);
       onCheckedIn?.(record);
-      onClose();
     } catch (e) {
       setError(e.response?.data?.detail ?? "Check-in failed");
     } finally { setLoading(false); }
@@ -32,8 +34,8 @@ export default function ShiftDetailsModal({ assignment, onClose, onCheckedIn, on
     setLoading(true); setError(null);
     try {
       const record = await attendanceApi.checkOut(attendanceRecord.id);
+      setAttendanceRecord(record);
       onCheckedOut?.(record);
-      onClose();
     } catch (e) {
       setError(e.response?.data?.detail ?? "Check-out failed");
     } finally { setLoading(false); }
@@ -124,10 +126,10 @@ export default function ShiftDetailsModal({ assignment, onClose, onCheckedIn, on
             </div>
           )}
 
-          {/* Check-in / out buttons (worker only, today only) */}
-          {isToday && (
+          {/* Check-in / out controls */}
+          {(isToday || (attendanceRecord && !attendanceRecord.checkedOutAt)) && (
             <div className="space-y-3">
-              {!attendanceRecord ? (
+              {!attendanceRecord && isToday ? (
                 <button
                   onClick={handleCheckIn}
                   disabled={loading}

@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 from uuid import uuid4
 from fastapi import HTTPException
@@ -254,6 +254,63 @@ async def create_shift_assignment(
             "assignedById": assigned_by_id,
         }
     )
+
+
+async def list_worker_assignments(worker_id: str):
+    """List assignments for a worker and include the latest attendance record.
+
+    Also auto-checks out overdue open attendance records at shift end time.
+    """
+    assignments = await db.shiftassignment.find_many(
+        where={"workerId": worker_id},
+        include={
+            "shift": True,
+            "checkInOuts": {"order": {"checkedInAt": "desc"}},
+        },
+        order={"createdAt": "desc"},
+    )
+
+    now_utc = datetime.now(timezone.utc)
+    results = []
+
+    for assignment in assignments:
+        records = list(assignment.checkInOuts or [])
+        open_record = next((r for r in records if r.checkedOutAt is None), None)
+
+        if open_record and assignment.shift and now_utc >= assignment.shift.endTime:
+            auto_checkout_at = assignment.shift.endTime
+            if auto_checkout_at < open_record.checkedInAt:
+                auto_checkout_at = open_record.checkedInAt
+
+            auto_hours = round(
+                (auto_checkout_at - open_record.checkedInAt).total_seconds() / 3600,
+                2,
+            )
+
+            updated_record = await db.checkinout.update(
+                where={"id": open_record.id},
+                data={
+                    "checkedOutAt": auto_checkout_at,
+                    "hoursWorked": auto_hours,
+                },
+            )
+            records = [updated_record if r.id == open_record.id else r for r in records]
+
+        latest_record = records[0] if records else None
+        results.append(
+            {
+                "id": assignment.id,
+                "shiftId": assignment.shiftId,
+                "workerId": assignment.workerId,
+                "assignedById": assignment.assignedById,
+                "status": assignment.status,
+                "createdAt": assignment.createdAt,
+                "shift": assignment.shift,
+                "checkInRecord": latest_record,
+            }
+        )
+
+    return results
 
 
 async def _validate_worker_active(worker_id: str):
