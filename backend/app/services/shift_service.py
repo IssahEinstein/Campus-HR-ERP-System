@@ -297,16 +297,27 @@ async def list_worker_assignments(worker_id: str):
             records = [updated_record if r.id == open_record.id else r for r in records]
 
         latest_record = records[0] if records else None
+        latest_record_dict = None
+        if latest_record:
+            latest_record_dict = {
+                "id": latest_record.id,
+                "worker_id": latest_record.workerId,
+                "shift_assignment_id": latest_record.shiftAssignmentId,
+                "checked_in_at": latest_record.checkedInAt,
+                "checked_out_at": latest_record.checkedOutAt,
+                "hours_worked": latest_record.hoursWorked,
+                "notes": latest_record.notes,
+            }
         results.append(
             {
                 "id": assignment.id,
-                "shiftId": assignment.shiftId,
-                "workerId": assignment.workerId,
-                "assignedById": assignment.assignedById,
+                "shift_id": assignment.shiftId,
+                "worker_id": assignment.workerId,
+                "assigned_by_id": assignment.assignedById,
                 "status": assignment.status,
-                "createdAt": assignment.createdAt,
+                "created_at": assignment.createdAt,
                 "shift": assignment.shift,
-                "checkInRecord": latest_record,
+                "check_in_record": latest_record_dict,
             }
         )
 
