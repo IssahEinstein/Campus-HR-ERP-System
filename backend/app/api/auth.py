@@ -15,15 +15,18 @@ from app.schemas.auth import (
 from app.schemas.common import MessageResponse
 from app.services import auth_service
 from app.auth.dependencies import get_current_user
+from app.core.config import settings
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
 _REFRESH_COOKIE = "refresh_token"
+_IS_LOCAL_FRONTEND = settings.FRONTEND_URL.startswith("http://localhost") or settings.FRONTEND_URL.startswith("http://127.0.0.1")
+_COOKIE_SAMESITE = "lax" if _IS_LOCAL_FRONTEND else "none"
 _COOKIE_OPTS = {
     "key": _REFRESH_COOKIE,
     "httponly": True,
     "secure": True,       # HTTPS only in production; set False for local HTTP dev
-    "samesite": "lax",
+    "samesite": _COOKIE_SAMESITE,
     "max_age": 60 * 60 * 24 * 7,  # 7 days in seconds
 }
 
@@ -82,7 +85,7 @@ async def logout(
     """Revoke the current session and clear the refresh cookie."""
     if refresh_token:
         await auth_service.logout(refresh_token)
-    response.delete_cookie(key=_REFRESH_COOKIE, httponly=True, secure=True, samesite="lax")
+    response.delete_cookie(key=_REFRESH_COOKIE, httponly=True, secure=True, samesite=_COOKIE_SAMESITE)
 
 
 @router.post("/logout-all", status_code=204)
@@ -93,7 +96,7 @@ async def logout_all(
 ) -> None:
     """Revoke all sessions for the authenticated user (logout from all devices)."""
     await auth_service.logout_all(current_user.user_id)
-    response.delete_cookie(key=_REFRESH_COOKIE, httponly=True, secure=True, samesite="lax")
+    response.delete_cookie(key=_REFRESH_COOKIE, httponly=True, secure=True, samesite=_COOKIE_SAMESITE)
 
 
 @router.get("/me", response_model=CurrentUser)
