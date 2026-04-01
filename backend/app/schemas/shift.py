@@ -76,6 +76,7 @@ class ShiftResponse(BaseModel):
     end_time: datetime
     status: ShiftStatus
     expected_hours: Optional[float] = None
+    assigned_worker_name: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 

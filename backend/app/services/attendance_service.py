@@ -77,10 +77,29 @@ async def get_record(record_id: str):
 
 async def list_records_for_worker(worker_id: str):
     """List all attendance records for a specific worker."""
-    return await db.checkinout.find_many(
+    records = await db.checkinout.find_many(
         where={"workerId": worker_id},
+        include={"shiftAssignment": {"include": {"shift": True}}},
         order={"checkedInAt": "desc"},
     )
+    result = []
+    for r in records:
+        shift_title = None
+        if r.shiftAssignment and r.shiftAssignment.shift:
+            shift_title = r.shiftAssignment.shift.title
+        result.append({
+            "id": r.id,
+            "worker_id": r.workerId,
+            "shift_assignment_id": r.shiftAssignmentId,
+            "checked_in_at": r.checkedInAt,
+            "checked_out_at": r.checkedOutAt,
+            "hours_worked": r.hoursWorked,
+            "notes": r.notes,
+            "shift_title": shift_title,
+            "created_at": r.createdAt,
+            "updated_at": r.updatedAt,
+        })
+    return result
 
 
 async def list_records_for_assignment(shift_assignment_id: str):

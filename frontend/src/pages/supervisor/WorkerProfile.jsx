@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
 import * as supervisorsApi from "../../api/supervisors";
 import * as attendanceApi from "../../api/attendance";
@@ -29,6 +29,13 @@ export default function WorkerProfile() {
   const [loading, setLoading] = useState(true);
   const [feedback, setFeedback] = useState(false);
 
+  const fetchAttendance = useCallback(() => {
+    if (!workerId) return;
+    attendanceApi.workerAttendance(workerId)
+      .then(setAttendance)
+      .catch(console.error);
+  }, [workerId]);
+
   useEffect(() => {
     if (!workerId) return;
     Promise.all([
@@ -51,6 +58,12 @@ export default function WorkerProfile() {
       .catch(console.error)
       .finally(() => setLoading(false));
   }, [workerId]);
+
+  // Poll attendance every 30 s so checkout times appear without a full page reload
+  useEffect(() => {
+    const id = setInterval(fetchAttendance, 30_000);
+    return () => clearInterval(id);
+  }, [fetchAttendance]);
 
   const fmt = (iso) =>
     new Date(iso).toLocaleDateString("en-US", {
@@ -290,11 +303,12 @@ export default function WorkerProfile() {
                   className="px-6 py-3 text-sm hover:bg-white/40 transition-colors"
                 >
                   <div className="text-gray-700">
-                    {a.checkInTime ? fmt(a.checkInTime) : "—"}
+                    {a.shiftTitle ?? "Unknown Shift"} &mdash;{" "}
+                    {a.checkedInAt ? fmt(a.checkedInAt) : "—"}
                   </div>
                   <div className="text-gray-400 text-xs">
-                    {a.checkInTime ? fmtT(a.checkInTime) : "—"} →{" "}
-                    {a.checkOutTime ? fmtT(a.checkOutTime) : "not checked out"}
+                    {a.checkedInAt ? fmtT(a.checkedInAt) : "—"} →{" "}
+                    {a.checkedOutAt ? fmtT(a.checkedOutAt) : "not checked out"}
                   </div>
                 </div>
               ))}

@@ -109,8 +109,32 @@ async def list_shifts(supervisor_id: Optional[str] = None):
     shifts = await db.shift.find_many(
         where=where,
         order={"startTime": "asc"},
+        include={"assignments": {"include": {"worker": {"include": {"user": True}}}}},
     )
-    return shifts
+    result = []
+    for s in shifts:
+        worker_name = None
+        if s.assignments:
+            for a in s.assignments:
+                if a.status != "CANCELLED" and a.worker and a.worker.user:
+                    u = a.worker.user
+                    worker_name = f"{u.firstName} {u.lastName}".strip()
+                    break
+        result.append({
+            "id": s.id,
+            "supervisor_id": s.supervisorId,
+            "title": s.title,
+            "description": s.description,
+            "location": s.location,
+            "start_time": s.startTime,
+            "end_time": s.endTime,
+            "status": s.status,
+            "expected_hours": s.expectedHours,
+            "assigned_worker_name": worker_name,
+            "created_at": s.createdAt,
+            "updated_at": s.updatedAt,
+        })
+    return result
 
 
 async def update_shift(shift_id: str, data: ShiftUpdate):
