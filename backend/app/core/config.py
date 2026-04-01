@@ -33,8 +33,15 @@ class Settings(BaseSettings):
 
     @property
     def allowed_origins_list(self) -> list[str]:
-        origins = [origin.strip() for origin in self.ALLOWED_ORIGINS.split(",")]
-        return [origin for origin in origins if origin]
+        raw_origins = [self.FRONTEND_URL, *self.ALLOWED_ORIGINS.split(",")]
+        normalized_origins: list[str] = []
+
+        for origin in raw_origins:
+            normalized = origin.strip().rstrip("/")
+            if normalized and normalized not in normalized_origins:
+                normalized_origins.append(normalized)
+
+        return normalized_origins
 
 
 settings = Settings()
