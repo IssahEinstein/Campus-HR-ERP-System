@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Plus, Calendar } from "lucide-react";
+import { useEffect, useState, useCallback } from "react";
+import { Plus, Calendar, CheckCircle } from "lucide-react";
 import * as shiftsApi from "../../api/shifts";
 import * as supervisorsApi from "../../api/supervisors";
 import CreateShiftModal from "../../components/modals/CreateShiftModal";
@@ -9,6 +9,7 @@ export default function SupervisorSchedule() {
   const [workers, setWorkers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
+  const [successMsg, setSuccessMsg] = useState("");
 
   const load = () =>
     Promise.all([shiftsApi.listShifts(), supervisorsApi.myWorkers()])
@@ -240,6 +241,12 @@ export default function SupervisorSchedule() {
         )}
       </div>
 
+      {successMsg && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-5 py-3 rounded-xl text-white text-sm font-medium shadow-lg" style={{ backgroundColor: "#00523E" }}>
+          <CheckCircle size={16} />{successMsg}
+        </div>
+      )}
+
       {showCreate && (
         <CreateShiftModal
           workers={workers}
@@ -247,6 +254,8 @@ export default function SupervisorSchedule() {
           onCreated={() => {
             setShowCreate(false);
             load();
+            setSuccessMsg("Shift created successfully!");
+            setTimeout(() => setSuccessMsg(""), 4000);
           }}
         />
       )}

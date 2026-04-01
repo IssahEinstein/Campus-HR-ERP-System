@@ -17,7 +17,7 @@ export default function PayStubModal({ stub, onClose }) {
           <div>
             <h2 className="text-xl font-bold text-gray-900">Pay Stub Details</h2>
             <p className="text-sm text-gray-600 mt-1">
-              {fmtDate(stub.periodStart)} – {fmtDate(stub.periodEnd)}
+              {fmtDate(stub.payPeriodStart)} – {fmtDate(stub.payPeriodEnd)}
             </p>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg">

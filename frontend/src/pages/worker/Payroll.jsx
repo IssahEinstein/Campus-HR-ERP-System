@@ -88,7 +88,7 @@ export default function WorkerPayroll() {
           </div>
           <div className="text-xs text-gray-500">
             {latest
-              ? `${fmtDate(latest.periodStart)} – ${fmtDate(latest.periodEnd)}`
+              ? `${fmtDate(latest.payPeriodStart)} – ${fmtDate(latest.payPeriodEnd)}`
               : "no data"}
           </div>
         </div>
@@ -172,7 +172,7 @@ export default function WorkerPayroll() {
                     <div className="flex items-start justify-between mb-3">
                       <div>
                         <h3 className="font-medium mb-1">
-                          {fmtDate(s.periodStart)} – {fmtDate(s.periodEnd)}
+                          {fmtDate(s.payPeriodStart)} – {fmtDate(s.payPeriodEnd)}
                         </h3>
                         <p className="text-sm text-gray-600">
                           {(Number(s.totalHours) || 0).toFixed(1)} hours worked
@@ -246,7 +246,7 @@ export default function WorkerPayroll() {
                 <span className="text-sm text-gray-600">Period</span>
                 <span className="text-sm font-medium">
                   {latest
-                    ? `${fmtDate(latest.periodStart)} – ${fmtDate(latest.periodEnd)}`
+                    ? `${fmtDate(latest.payPeriodStart)} – ${fmtDate(latest.payPeriodEnd)}`
                     : "—"}
                 </span>
               </div>

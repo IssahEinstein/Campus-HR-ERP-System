@@ -136,10 +136,12 @@ export default function CreateShiftModal({ workers, onClose, onCreated }) {
 
     const jsDay = new Date(`${selectedDate}T00:00:00`).getDay(); // Sun=0
     const dayOfWeek = (jsDay + 6) % 7; // Mon=0 .. Sun=6
-    return workerAvailability.some(
+    const slotsForDay = workerAvailability.filter((slot) => slot.dayOfWeek === dayOfWeek);
+    // If the worker has no slots configured for this day, treat it as open (no constraint).
+    if (slotsForDay.length === 0) return true;
+    return slotsForDay.some(
       (slot) =>
-        slot.dayOfWeek === dayOfWeek
-        && slot.startTime <= selectedStartTime
+        slot.startTime <= selectedStartTime
         && slot.endTime >= selectedEndTime,
     );
   };

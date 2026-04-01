@@ -351,7 +351,7 @@ export default function WorkerProfile() {
                 >
                   <div>
                     <div className="text-gray-700">
-                      {fmt(s.periodStart)} – {fmt(s.periodEnd)}
+                      {fmt(s.payPeriodStart)} – {fmt(s.payPeriodEnd)}
                     </div>
                     <div className="text-xs text-gray-400">
                       {(Number(s.totalHours) || 0).toFixed(1)} hrs

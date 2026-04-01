@@ -277,6 +277,9 @@ export default function SupervisorDashboard() {
                   >
                     <div>
                       <div className="font-medium text-sm">{s.title}</div>
+                      {s.assignedWorkerName && (
+                        <div className="text-xs font-medium" style={{ color: "#00523E" }}>{s.assignedWorkerName}</div>
+                      )}
                       <div className="text-xs text-gray-500">
                         {fmt(s.startTime)} · {fmtT(s.startTime)} –{" "}
                         {fmtT(s.endTime)}
