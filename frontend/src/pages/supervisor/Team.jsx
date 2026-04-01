@@ -39,7 +39,7 @@ export default function SupervisorTeam() {
   const loadWorkers = () => {
     setLoading(true);
     setFormError("");
-    supervisorsApi
+    return supervisorsApi
       .myWorkers()
       .then((data) => setWorkers(data.map(normalizeWorker)))
       .catch((error) => {
@@ -90,9 +90,20 @@ export default function SupervisorTeam() {
       setShowInviteForm(false);
       loadWorkers();
     } catch (requestError) {
+      const timedOut =
+        requestError?.code === "ECONNABORTED" ||
+        String(requestError?.message ?? "").toLowerCase().includes("timeout");
+
+      if (timedOut) {
+        setFormError(
+          "Invite request timed out. The worker may still have been created; wait a moment and check the team list before retrying.",
+        );
+        loadWorkers();
+      } else {
       setFormError(
         requestError.response?.data?.detail ?? "Failed to create worker.",
       );
+      }
     } finally {
       setInviting(false);
     }
