@@ -6,6 +6,18 @@ import * as timeoffApi from "../../api/timeoff";
 import * as supervisorsApi from "../../api/supervisors";
 
 export default function CreateShiftModal({ workers, onClose, onCreated }) {
+  // Build an ISO datetime string that preserves the browser's local timezone offset
+  // so the backend can extract the correct local HH:MM for availability comparison.
+  const toLocalISO = (dateStr, timeStr) => {
+    const dt = new Date(`${dateStr}T${timeStr}`);
+    const offsetMin = dt.getTimezoneOffset(); // minutes BEHIND UTC (positive = behind UTC)
+    const sign = offsetMin <= 0 ? "+" : "-";
+    const absMin = Math.abs(offsetMin);
+    const hh = String(Math.floor(absMin / 60)).padStart(2, "0");
+    const mm = String(absMin % 60).padStart(2, "0");
+    const fullTime = timeStr.length === 5 ? `${timeStr}:00` : timeStr;
+    return `${dateStr}T${fullTime}${sign}${hh}:${mm}`;
+  };
   const [loading, setLoading] = useState(false);
   const [error, setError]   = useState(null);
   const [selectedWorkerId, setSelectedWorkerId] = useState("");
@@ -202,11 +214,11 @@ export default function CreateShiftModal({ workers, onClose, onCreated }) {
       title: fd.get("title"),
       location: normalizedLocation,
       description: fd.get("description") || undefined,
-      start_time: new Date(`${fd.get("date")}T${fd.get("startTime")}`).toISOString(),
-      end_time:   new Date(`${fd.get("date")}T${fd.get("endTime")}`).toISOString(),
+      start_time: toLocalISO(fd.get("date"), fd.get("startTime")),
+      end_time:   toLocalISO(fd.get("date"), fd.get("endTime")),
       repeat_weekly: repeatWeekly,
       repeat_end_date: repeatWeekly && repeatEndDate
-        ? new Date(`${repeatEndDate}T23:59:59`).toISOString()
+        ? toLocalISO(repeatEndDate, "23:59:59")
         : undefined,
     };
 
