@@ -265,7 +265,7 @@ async def list_worker_assignments(worker_id: str):
         where={"workerId": worker_id},
         include={
             "shift": True,
-            "checkInOuts": {"order": {"checkedInAt": "desc"}},
+            "checkInOuts": {"order_by": {"checkedInAt": "desc"}},
         },
         order={"createdAt": "desc"},
     )
