@@ -1,5 +1,5 @@
 from unittest.mock import AsyncMock, MagicMock, patch
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import pytest
 from fastapi import HTTPException
@@ -225,3 +225,15 @@ async def test_assign_worker_uses_scheduling_timezone_for_availability_day_match
         assignment = await shift_service.assign_worker("shift-tz", "worker-1", "sup-1")
 
     assert assignment.id == "assignment-tz"
+
+
+def test_to_scheduling_timezone_treats_naive_datetime_as_local_scheduling_time():
+    naive_value = datetime(2026, 4, 6, 9, 0)
+    fake_zone = timezone(timedelta(hours=-5))
+
+    with patch("app.services.shift_service._get_scheduling_zone", return_value=fake_zone):
+        converted = shift_service._to_scheduling_timezone(naive_value)
+
+    assert converted.hour == 9
+    assert converted.minute == 0
+    assert converted.utcoffset() == timedelta(hours=-5)

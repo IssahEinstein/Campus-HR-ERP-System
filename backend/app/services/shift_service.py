@@ -505,8 +505,11 @@ def _get_scheduling_zone():
 
 
 def _to_scheduling_timezone(value: datetime) -> datetime:
-    aware = value if value.tzinfo is not None else value.replace(tzinfo=timezone.utc)
-    return aware.astimezone(_get_scheduling_zone())
+    scheduling_zone = _get_scheduling_zone()
+    if value.tzinfo is None:
+        # Naive datetimes are interpreted as already in the scheduling timezone.
+        return value.replace(tzinfo=scheduling_zone)
+    return value.astimezone(scheduling_zone)
 
 
 def _time_text_to_minutes(value: str) -> int:
