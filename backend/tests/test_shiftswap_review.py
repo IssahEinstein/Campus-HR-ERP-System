@@ -373,3 +373,45 @@ async def test_submit_swap_request_persists_preferred_permanent_flag():
             "preferredPermanent": True,
         }
     )
+
+
+async def test_submit_swap_request_accepts_public_worker_id_code():
+    create_body = SimpleNamespace(
+        target_worker_id="W-1002",
+        from_assignment_id="a-from",
+        to_assignment_id=None,
+        reason=None,
+        preferred_permanent=False,
+    )
+    initiator = SimpleNamespace(id="worker-1")
+    from_assignment = SimpleNamespace(id="a-from", workerId="worker-1")
+    target = SimpleNamespace(id="worker-2", workerId="W-1002")
+
+    with patch("app.services.shiftswap_service.db") as mock_db:
+        mock_db.worker.find_unique = AsyncMock(side_effect=[initiator, None])
+        mock_db.worker.find_first = AsyncMock(return_value=target)
+        mock_db.shiftassignment.find_unique = AsyncMock(return_value=from_assignment)
+        mock_db.shiftswaprequest.find_first = AsyncMock(return_value=None)
+        mock_db.shiftswaprequest.create = AsyncMock(return_value=SimpleNamespace(id="req-new"))
+
+        await shiftswap_service.submit_swap_request(create_body, worker_id="worker-1")
+
+    mock_db.worker.find_first.assert_awaited_once_with(
+        where={
+            "OR": [
+                {"workerId": "W-1002"},
+                {"workerId": "W-1002"},
+                {"workerId": "w-1002"},
+            ]
+        }
+    )
+    mock_db.shiftswaprequest.create.assert_awaited_once_with(
+        data={
+            "initiatedById": "worker-1",
+            "targetWorkerId": "worker-2",
+            "fromAssignmentId": "a-from",
+            "toAssignmentId": None,
+            "reason": None,
+            "preferredPermanent": False,
+        }
+    )

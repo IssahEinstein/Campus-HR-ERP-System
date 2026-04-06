@@ -61,7 +61,7 @@ async def list_my_workers(
         raise HTTPException(status_code=404, detail="Supervisor profile not found")
     return await _db.worker.find_many(
         where={"departmentId": supervisor.departmentId},
-        include={"user": True},
+        include={"user": True, "department": True},
         order={"createdAt": "desc"},
     )
 

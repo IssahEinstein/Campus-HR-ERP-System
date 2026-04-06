@@ -8,6 +8,27 @@ from app.services import shift_service
 db = get_db()
 
 
+async def _resolve_worker_by_identifier(identifier: str):
+    """Resolve a worker by internal profile id or public workerId code."""
+    raw = str(identifier or "").strip()
+    if not raw:
+        return None
+
+    worker = await db.worker.find_unique(where={"id": raw})
+    if worker:
+        return worker
+
+    return await db.worker.find_first(
+        where={
+            "OR": [
+                {"workerId": raw},
+                {"workerId": raw.upper()},
+                {"workerId": raw.lower()},
+            ]
+        }
+    )
+
+
 async def submit_swap_request(data: ShiftSwapCreate, worker_id: str):
     """Worker submits a shift swap request targeting another worker."""
     # Verify the initiating worker exists
@@ -22,13 +43,13 @@ async def submit_swap_request(data: ShiftSwapCreate, worker_id: str):
     if from_assignment.workerId != worker_id:
         raise HTTPException(status_code=403, detail="from_assignment does not belong to you")
 
-    # Verify target worker exists
-    target = await db.worker.find_unique(where={"id": data.target_worker_id})
+    # Verify target worker exists (accept either profile id or public worker ID)
+    target = await _resolve_worker_by_identifier(data.target_worker_id)
     if not target:
         raise HTTPException(status_code=404, detail="Target worker not found")
 
     # No self-swaps
-    if data.target_worker_id == worker_id:
+    if target.id == worker_id:
         raise HTTPException(status_code=400, detail="Cannot swap with yourself")
 
     # Check for duplicate pending request
@@ -45,7 +66,7 @@ async def submit_swap_request(data: ShiftSwapCreate, worker_id: str):
     return await db.shiftswaprequest.create(
         data={
             "initiatedById": worker_id,
-            "targetWorkerId": data.target_worker_id,
+            "targetWorkerId": target.id,
             "fromAssignmentId": data.from_assignment_id,
             "toAssignmentId": data.to_assignment_id,
             "reason": data.reason,
