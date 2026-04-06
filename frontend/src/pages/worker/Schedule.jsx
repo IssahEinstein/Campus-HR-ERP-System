@@ -7,6 +7,26 @@ import ShiftDetailsModal from "../../components/modals/ShiftDetailsModal";
 
 const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
+const formatTime12 = (value) => {
+  const text = String(value ?? "").trim().replace(/\s+/g, " ").toUpperCase();
+  const match = text.match(/^(\d{1,2}):(\d{2})(?::\d{2})?(?:\s*(AM|PM))?$/);
+  if (!match) return text;
+
+  let hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  const meridiem = match[3] ?? null;
+  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return text;
+
+  if (meridiem) {
+    if (meridiem === "AM") hours = hours % 12;
+    else hours = (hours % 12) + 12;
+  }
+
+  const suffix = hours >= 12 ? "PM" : "AM";
+  const hours12 = ((hours + 11) % 12) + 1;
+  return `${hours12}:${String(minutes).padStart(2, "0")} ${suffix}`;
+};
+
 export default function WorkerSchedule() {
   const [assignments, setAssignments] = useState([]);
   const [availability, setAvailability] = useState([]);
@@ -353,7 +373,7 @@ export default function WorkerSchedule() {
                     >
                       <span>{DAY_NAMES[av.dayOfWeek]}</span>
                       <span>
-                        {av.startTime} – {av.endTime}
+                        {formatTime12(av.startTime)} – {formatTime12(av.endTime)}
                       </span>
                     </div>
                   ))}

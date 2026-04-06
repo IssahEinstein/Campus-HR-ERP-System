@@ -36,6 +36,44 @@ export default function CreateShiftModal({ workers, onClose, onCreated }) {
 
   const dayNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
+  const timeToMinutes = (value) => {
+    const text = String(value ?? "").trim();
+    const normalized = text.replace(/\s+/g, " ").toUpperCase();
+    const match = normalized.match(/^(\d{1,2}):(\d{2})(?::\d{2})?(?:\s*(AM|PM))?$/);
+    if (!match) return null;
+
+    let hours = Number(match[1]);
+    const minutes = Number(match[2]);
+    const meridiem = match[3] ?? null;
+
+    if (!Number.isFinite(hours) || !Number.isFinite(minutes) || minutes < 0 || minutes > 59) {
+      return null;
+    }
+
+    if (meridiem) {
+      if (hours < 1 || hours > 12) return null;
+      if (meridiem === "AM") {
+        hours = hours % 12;
+      } else {
+        hours = (hours % 12) + 12;
+      }
+    } else if (hours < 0 || hours > 23) {
+      return null;
+    }
+
+    return hours * 60 + minutes;
+  };
+
+  const formatTime12 = (value) => {
+    const minutes = timeToMinutes(value);
+    if (minutes == null) return String(value ?? "");
+    const hours24 = Math.floor(minutes / 60);
+    const mins = String(minutes % 60).padStart(2, "0");
+    const suffix = hours24 >= 12 ? "PM" : "AM";
+    const hours12 = ((hours24 + 11) % 12) + 1;
+    return `${hours12}:${mins} ${suffix}`;
+  };
+
   useEffect(() => {
     if (!selectedWorkerId) {
       setWorkerAvailability([]);
@@ -136,13 +174,24 @@ export default function CreateShiftModal({ workers, onClose, onCreated }) {
 
     const jsDay = new Date(`${selectedDate}T00:00:00`).getDay(); // Sun=0
     const dayOfWeek = (jsDay + 6) % 7; // Mon=0 .. Sun=6
+    const allSlots = workerAvailability;
     const slotsForDay = workerAvailability.filter((slot) => slot.dayOfWeek === dayOfWeek);
-    // If the worker has no slots configured for this day, treat it as open (no constraint).
-    if (slotsForDay.length === 0) return true;
+
+    // Match backend behavior: if worker has any availability configured but none for this day,
+    // treat this shift as outside availability.
+    if (allSlots.length > 0 && slotsForDay.length === 0) return false;
+
+    const shiftStartMinutes = timeToMinutes(selectedStartTime);
+    const shiftEndMinutes = timeToMinutes(selectedEndTime);
+    if (shiftStartMinutes == null || shiftEndMinutes == null) return false;
+
     return slotsForDay.some(
-      (slot) =>
-        slot.startTime <= selectedStartTime
-        && slot.endTime >= selectedEndTime,
+      (slot) => {
+        const slotStart = timeToMinutes(slot.startTime);
+        const slotEnd = timeToMinutes(slot.endTime);
+        if (slotStart == null || slotEnd == null) return false;
+        return slotStart <= shiftStartMinutes && slotEnd >= shiftEndMinutes;
+      },
     );
   };
 
@@ -212,10 +261,17 @@ export default function CreateShiftModal({ workers, onClose, onCreated }) {
       return;
     }
 
+    if (!selectedWorkerId) {
+      setError("Select a worker before creating the shift.");
+      setLoading(false);
+      return;
+    }
+
     const body = {
       title: fd.get("title"),
       location: normalizedLocation,
       description: fd.get("description") || undefined,
+      worker_id: selectedWorkerId,
       start_time: toLocalISO(fd.get("date"), fd.get("startTime")),
       end_time:   toLocalISO(fd.get("date"), fd.get("endTime")),
       repeat_weekly: repeatWeekly,
@@ -244,11 +300,6 @@ export default function CreateShiftModal({ workers, onClose, onCreated }) {
 
     try {
       const shift = await shiftsApi.createShift(body);
-      // Optionally assign a worker immediately
-      const workerId = selectedWorkerId;
-      if (workerId) {
-        await shiftsApi.assignWorker(shift.id, workerId, repeatWeekly);
-      }
       onCreated?.(shift);
       onClose();
     } catch (err) {
@@ -422,9 +473,10 @@ export default function CreateShiftModal({ workers, onClose, onCreated }) {
                 name="worker"
                 value={selectedWorkerId}
                 onChange={(e) => setSelectedWorkerId(e.target.value)}
+                required
                 className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00523E] focus:border-transparent"
               >
-                <option value="">Don't assign yet</option>
+                <option value="">Select worker</option>
                 {workers.map((w) => (
                   <option key={w.id} value={w.id}>
                     {w.user?.firstName ?? ""} {w.user?.lastName ?? ""}
@@ -444,7 +496,7 @@ export default function CreateShiftModal({ workers, onClose, onCreated }) {
                       <ul className="space-y-1 mb-2">
                         {workerAvailability.map((slot) => (
                           <li key={slot.id}>
-                            {dayNames[slot.dayOfWeek]} {slot.startTime} - {slot.endTime}
+                            {dayNames[slot.dayOfWeek]} {formatTime12(slot.startTime)} - {formatTime12(slot.endTime)}
                           </li>
                         ))}
                       </ul>

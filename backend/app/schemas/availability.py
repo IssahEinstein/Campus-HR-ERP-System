@@ -17,11 +17,16 @@ class AvailabilityCreate(BaseModel):
             raise ValueError("day_of_week must be 0 (Monday) to 6 (Sunday)")
         return v
 
+    @field_validator("start_time", "end_time")
+    @classmethod
+    def normalize_time(cls, value):
+        return _normalize_time_text(value)
+
     @field_validator("end_time")
     @classmethod
     def end_after_start(cls, end_time, info):
         start_time = info.data.get("start_time")
-        if start_time and end_time <= start_time:
+        if start_time and _time_text_to_minutes(end_time) <= _time_text_to_minutes(start_time):
             raise ValueError("end_time must be after start_time")
         return end_time
 
@@ -29,6 +34,13 @@ class AvailabilityCreate(BaseModel):
 class AvailabilityUpdate(BaseModel):
     start_time: Optional[str] = None
     end_time: Optional[str] = None
+
+    @field_validator("start_time", "end_time")
+    @classmethod
+    def normalize_optional_time(cls, value):
+        if value is None:
+            return value
+        return _normalize_time_text(value)
 
 
 class AvailabilityResponse(BaseModel):
@@ -44,3 +56,29 @@ class AvailabilityResponse(BaseModel):
     start_time: str
     end_time: str
     created_at: datetime
+
+
+def _normalize_time_text(value: str) -> str:
+    """Accept 12h/24h time input and normalize to HH:MM (24h)."""
+    text = " ".join(str(value or "").strip().split())
+    candidates = [
+        "%H:%M",
+        "%H:%M:%S",
+        "%I:%M %p",
+        "%I:%M:%S %p",
+    ]
+
+    for fmt in candidates:
+        try:
+            parsed = datetime.strptime(text, fmt)
+            return parsed.strftime("%H:%M")
+        except ValueError:
+            continue
+
+    raise ValueError("time must be in HH:MM, HH:MM:SS, or h:mm AM/PM format")
+
+
+def _time_text_to_minutes(value: str) -> int:
+    normalized = _normalize_time_text(value)
+    hours, minutes = normalized.split(":")
+    return (int(hours) * 60) + int(minutes)

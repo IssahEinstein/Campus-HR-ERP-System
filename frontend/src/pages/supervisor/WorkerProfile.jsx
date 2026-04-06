@@ -19,6 +19,26 @@ function normalizeWorker(w) {
   };
 }
 
+function formatTime12(value) {
+  const text = String(value ?? "").trim().replace(/\s+/g, " ").toUpperCase();
+  const match = text.match(/^(\d{1,2}):(\d{2})(?::\d{2})?(?:\s*(AM|PM))?$/);
+  if (!match) return text;
+
+  let hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  const meridiem = match[3] ?? null;
+  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return text;
+
+  if (meridiem) {
+    if (meridiem === "AM") hours = hours % 12;
+    else hours = (hours % 12) + 12;
+  }
+
+  const suffix = hours >= 12 ? "PM" : "AM";
+  const hours12 = ((hours + 11) % 12) + 1;
+  return `${hours12}:${String(minutes).padStart(2, "0")} ${suffix}`;
+}
+
 export default function WorkerProfile() {
   const { workerId } = useParams();
   const [worker, setWorker] = useState(null);
@@ -244,7 +264,7 @@ export default function WorkerProfile() {
               {availability.map((slot) => (
                 <div key={slot.id} className="px-6 py-3 text-sm">
                   <div className="text-gray-700">
-                    {dayNames[slot.dayOfWeek] ?? "Day"} {slot.startTime} - {slot.endTime}
+                    {dayNames[slot.dayOfWeek] ?? "Day"} {formatTime12(slot.startTime)} - {formatTime12(slot.endTime)}
                   </div>
                 </div>
               ))}

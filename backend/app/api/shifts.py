@@ -19,6 +19,8 @@ async def create_shift(
     current_user: Annotated[CurrentUser, Depends(require_role("SUPERVISOR"))],
 ):
     """Supervisor creates a new shift."""
+    if body.worker_id:
+        await ensure_supervisor_owns_worker(current_user.profile_id, body.worker_id)
     return await shift_service.create_shift(body, supervisor_id=current_user.profile_id)
 
 

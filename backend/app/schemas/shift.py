@@ -24,6 +24,7 @@ class ShiftCreate(BaseModel):
     location: Optional[str] = None
     start_time: datetime
     end_time: datetime
+    worker_id: Optional[str] = None
     expected_hours: Optional[float] = None
     repeat_weekly: bool = False
     repeat_end_date: Optional[datetime] = None

@@ -18,54 +18,62 @@ async def create_shift(data: ShiftCreate, supervisor_id: str):
         raise HTTPException(status_code=404, detail="Supervisor not found")
 
     computed_expected_hours = _calculate_expected_hours(data.start_time, data.end_time)
+    selected_worker_id = data.worker_id
 
     if not data.repeat_weekly:
-        return await db.shift.create(
-            data={
-                "supervisorId": supervisor_id,
-                "title": data.title,
-                "description": data.description,
-                "location": data.location,
-                "startTime": data.start_time,
-                "endTime": data.end_time,
-                "expectedHours": computed_expected_hours,
-                "isRecurring": False,
-            }
-        )
-
-    semester_settings = None
-    recurrence_end = data.repeat_end_date
-    if recurrence_end is None:
-        rows = await db.query_raw(
-            'SELECT "semesterStartDate", "semesterEndDate" FROM "SemesterSetting" WHERE "key" = \'default\' LIMIT 1'
-        )
-        if not rows:
-            raise HTTPException(
-                status_code=400,
-                detail="Semester dates are not configured. Ask an admin to set them first.",
+        occurrences = [(data.start_time, data.end_time)]
+        recurrence_group_id = None
+    else:
+        semester_settings = None
+        recurrence_end = data.repeat_end_date
+        if recurrence_end is None:
+            rows = await db.query_raw(
+                'SELECT "semesterStartDate", "semesterEndDate" FROM "SemesterSetting" WHERE "key" = \'default\' LIMIT 1'
             )
-        semester_settings = rows[0]
-        recurrence_end = semester_settings["semesterEndDate"]
+            if not rows:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Semester dates are not configured. Ask an admin to set them first.",
+                )
+            semester_settings = rows[0]
+            recurrence_end = semester_settings["semesterEndDate"]
 
-    if recurrence_end <= data.start_time:
-        raise HTTPException(status_code=400, detail="repeat_end_date must be after start_time")
+        if recurrence_end <= data.start_time:
+            raise HTTPException(status_code=400, detail="repeat_end_date must be after start_time")
 
-    first_start = data.start_time
-    if semester_settings is not None:
-        first_start = _first_occurrence_with_weekday_and_time(
-            semester_settings["semesterStartDate"],
-            data.start_time,
-        )
-        if first_start < data.start_time:
-            first_start = data.start_time
+        first_start = data.start_time
+        if semester_settings is not None:
+            first_start = _first_occurrence_with_weekday_and_time(
+                semester_settings["semesterStartDate"],
+                data.start_time,
+            )
+            if first_start < data.start_time:
+                first_start = data.start_time
 
-    duration = data.end_time - data.start_time
-    recurrence_group_id = uuid4().hex
+        duration = data.end_time - data.start_time
+        recurrence_group_id = uuid4().hex
+        occurrences = []
+
+        occurrence_start = first_start
+        while occurrence_start <= recurrence_end:
+            occurrence_end = occurrence_start + duration
+            occurrences.append((occurrence_start, occurrence_end))
+            occurrence_start = occurrence_start + timedelta(days=7)
+
+    if not occurrences:
+        raise HTTPException(status_code=400, detail="No recurring shifts were generated")
+
+    # Enforce availability/time-off/overlap before creating any shift record.
+    if selected_worker_id:
+        for occurrence_start, occurrence_end in occurrences:
+            await validate_worker_for_shift(
+                selected_worker_id,
+                occurrence_start,
+                occurrence_end,
+            )
 
     created_shift = None
-    occurrence_start = first_start
-    while occurrence_start <= recurrence_end:
-        occurrence_end = occurrence_start + duration
+    for occurrence_start, occurrence_end in occurrences:
         created = await db.shift.create(
             data={
                 "supervisorId": supervisor_id,
@@ -75,16 +83,20 @@ async def create_shift(data: ShiftCreate, supervisor_id: str):
                 "startTime": occurrence_start,
                 "endTime": occurrence_end,
                 "expectedHours": computed_expected_hours,
-                "isRecurring": True,
+                "isRecurring": bool(data.repeat_weekly),
                 "recurrenceGroupId": recurrence_group_id,
             }
         )
+
+        if selected_worker_id:
+            await create_shift_assignment(
+                shift_id=created.id,
+                worker_id=selected_worker_id,
+                assigned_by_id=supervisor_id,
+            )
+
         if created_shift is None:
             created_shift = created
-        occurrence_start = occurrence_start + timedelta(days=7)
-
-    if created_shift is None:
-        raise HTTPException(status_code=400, detail="No recurring shifts were generated")
 
     return created_shift
 
@@ -476,19 +488,20 @@ async def _validate_worker_availability_and_time_off(
 
 
 def _time_text_to_minutes(value: str) -> int:
-    """Convert 'HH:MM' or 'HH:MM:SS' style values into minutes after midnight."""
-    text = str(value or "").strip()
-    parts = text.split(":")
-    if len(parts) < 2:
-        raise HTTPException(status_code=400, detail=f"Invalid time value: {value}")
+    """Convert 24h or 12h time text to minutes after midnight."""
+    text = " ".join(str(value or "").strip().split())
+    candidates = [
+        "%H:%M",
+        "%H:%M:%S",
+        "%I:%M %p",
+        "%I:%M:%S %p",
+    ]
 
-    try:
-        hours = int(parts[0])
-        minutes = int(parts[1])
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=f"Invalid time value: {value}") from exc
+    for fmt in candidates:
+        try:
+            parsed = datetime.strptime(text, fmt)
+            return (parsed.hour * 60) + parsed.minute
+        except ValueError:
+            continue
 
-    if hours < 0 or hours > 23 or minutes < 0 or minutes > 59:
-        raise HTTPException(status_code=400, detail=f"Invalid time value: {value}")
-
-    return (hours * 60) + minutes
+    raise HTTPException(status_code=400, detail=f"Invalid time value: {value}")
