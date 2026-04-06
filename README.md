@@ -300,6 +300,9 @@ You can deploy this backend as a Render Web Service either from `render.yaml` (B
 - `SMTP_USER`
 - `SMTP_PASSWORD`
 - `SMTP_FROM`
+- `SMTP_MAX_RETRIES` (default `0`)
+- `SMTP_RETRY_DELAY_SECONDS` (default `1.0`)
+- `SMTP_TIMEOUT_SECONDS` (default `8.0`)
 
 ### Verify deployment
 

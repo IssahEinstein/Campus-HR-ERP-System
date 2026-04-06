@@ -21,8 +21,9 @@ class Settings(BaseSettings):
     SMTP_PASSWORD: str = ""
     SMTP_FROM: str = ""
     SMTP_DEBUG: bool = False
-    SMTP_MAX_RETRIES: int = 2
-    SMTP_RETRY_DELAY_SECONDS: float = 1.5
+    SMTP_MAX_RETRIES: int = 0
+    SMTP_RETRY_DELAY_SECONDS: float = 1.0
+    SMTP_TIMEOUT_SECONDS: float = 8.0
 
     # One-time admin bootstrap
     ADMIN_BOOTSTRAP_KEY: str = ""

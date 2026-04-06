@@ -223,7 +223,7 @@ export default function WorkerSchedule() {
                   <div className="text-xs mb-1">{day.dayName}</div>
                   <div className="text-lg font-medium mb-1">{day.dateNum}</div>
                   <div className="text-xs">
-                    {day.hours > 0 ? `${day.hours}h` : "—"}
+                    {day.hours > 0 ? `${day.hours.toFixed(1)}h` : "—"}
                   </div>
                 </div>
               ))}
@@ -233,7 +233,7 @@ export default function WorkerSchedule() {
               style={{ borderColor: "rgba(0,82,62,0.09)" }}
             >
               <span className="text-gray-600">Total this week</span>
-              <span className="font-medium">{totalWeekHrs} hours</span>
+              <span className="font-medium">{totalWeekHrs.toFixed(1)} hours</span>
             </div>
           </div>
 

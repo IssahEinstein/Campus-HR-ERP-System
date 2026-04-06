@@ -37,3 +37,9 @@ services:
         sync: false
       - key: SMTP_FROM
         sync: false
+      - key: SMTP_MAX_RETRIES
+        value: "0"
+      - key: SMTP_RETRY_DELAY_SECONDS
+        value: "1.0"
+      - key: SMTP_TIMEOUT_SECONDS
+        value: "8.0"

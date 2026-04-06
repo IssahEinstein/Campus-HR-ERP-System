@@ -84,6 +84,14 @@ export default function WorkerDashboard() {
   const approvedReqs = requests.filter((r) => r.status === "APPROVED").length;
   const profileImageUrl = resolveProfileImageUrl(user?.avatar_url);
 
+  const paidStubs = payStubs.filter((s) => s.status === "PAID");
+  const ytdHours = paidStubs.reduce(
+    (sum, s) => sum + (Number(s.totalHours) || 0),
+    0,
+  );
+  const ytdNet = paidStubs.reduce((sum, s) => sum + (Number(s.netPay) || 0), 0);
+  const currency = (n) => `$${(Number(n) || 0).toFixed(2)}`;
+
   const fmt = (iso) =>
     new Date(iso).toLocaleTimeString([], {
       hour: "2-digit",
@@ -130,7 +138,7 @@ export default function WorkerDashboard() {
                 label: "This Week",
                 value: (
                   <>
-                    {thisWeekHrs}
+                    {thisWeekHrs.toFixed(1)}
                     <span className="text-lg text-gray-500"> hrs</span>
                   </>
                 ),
@@ -154,7 +162,7 @@ export default function WorkerDashboard() {
                 label: "This Month",
                 value: (
                   <>
-                    {thisMonthHrs}
+                    {thisMonthHrs.toFixed(1)}
                     <span className="text-lg text-gray-500"> hrs</span>
                   </>
                 ),
@@ -197,6 +205,39 @@ export default function WorkerDashboard() {
                 <div className="text-xs text-gray-400">{sub}</div>
               </div>
             ))}
+          </div>
+
+          {/* Year to Date Summary */}
+          <div
+            className="rounded-2xl p-6"
+            style={{
+              background:
+                "linear-gradient(160deg, rgba(255,255,255,0.78) 0%, rgba(242,250,245,0.88) 100%)",
+              backdropFilter: "blur(18px)",
+              WebkitBackdropFilter: "blur(18px)",
+              border: "1px solid rgba(0,82,62,0.11)",
+              boxShadow:
+                "0 8px 40px rgba(0,82,62,0.09), inset 0 1px 0 rgba(255,255,255,0.95)",
+            }}
+          >
+            <h3 className="text-sm font-medium text-gray-600 mb-4">
+              {now.getFullYear()} Year to Date
+            </h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-xs text-gray-500 mb-1">Total Hours</p>
+                <p className="text-2xl font-semibold text-gray-900">
+                  {ytdHours.toFixed(1)}
+                  <span className="text-lg text-gray-500"> hrs</span>
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 mb-1">Net Earnings</p>
+                <p className="text-2xl font-semibold text-gray-900">
+                  {currency(ytdNet)}
+                </p>
+              </div>
+            </div>
           </div>
 
           {/* Quick Overview */}
