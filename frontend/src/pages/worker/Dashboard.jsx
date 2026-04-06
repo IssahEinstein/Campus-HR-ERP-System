@@ -17,6 +17,7 @@ import {
 import { useAuth } from "../../context/AuthContext";
 import * as shiftsApi from "../../api/shifts";
 import * as payrollApi from "../../api/payroll";
+import * as attendanceApi from "../../api/attendance";
 import * as timeoffApi from "../../api/timeoff";
 import * as feedbackApi from "../../api/feedback";
 
@@ -32,6 +33,7 @@ export default function WorkerDashboard() {
   const { user } = useAuth();
   const [assignments, setAssignments] = useState([]);
   const [payStubs, setPayStubs] = useState([]);
+  const [attendance, setAttendance] = useState([]);
   const [requests, setRequests] = useState([]);
   const [feedbackItems, setFeedbackItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -40,12 +42,14 @@ export default function WorkerDashboard() {
     Promise.all([
       shiftsApi.myAssignments(),
       payrollApi.myPayStubs(),
+      attendanceApi.myAttendance(),
       timeoffApi.myTimeOff(),
       feedbackApi.myFeedback().catch(() => []),
     ])
-      .then(([a, p, r, f]) => {
+      .then(([a, p, attendanceData, r, f]) => {
         setAssignments(a);
-        setPayStubs(p);
+        setPayStubs(Array.isArray(p) ? p : []);
+        setAttendance(Array.isArray(attendanceData) ? attendanceData : []);
         setRequests(r);
         setFeedbackItems(f);
       })
@@ -84,12 +88,16 @@ export default function WorkerDashboard() {
   const approvedReqs = requests.filter((r) => r.status === "APPROVED").length;
   const profileImageUrl = resolveProfileImageUrl(user?.avatar_url);
 
-  const paidStubs = payStubs.filter((s) => s.status === "PAID");
-  const ytdHours = paidStubs.reduce(
+  const ytdHoursFromStubs = payStubs.reduce(
     (sum, s) => sum + (Number(s.totalHours) || 0),
     0,
   );
-  const ytdNet = paidStubs.reduce((sum, s) => sum + (Number(s.netPay) || 0), 0);
+  const ytdHoursFromAttendance = attendance.reduce(
+    (sum, r) => sum + (Number(r.hoursWorked) || 0),
+    0,
+  );
+  const ytdHours = ytdHoursFromStubs > 0 ? ytdHoursFromStubs : ytdHoursFromAttendance;
+  const ytdNet = payStubs.reduce((sum, s) => sum + (Number(s.netPay) || 0), 0);
   const currency = (n) => `$${(Number(n) || 0).toFixed(2)}`;
 
   const fmt = (iso) =>

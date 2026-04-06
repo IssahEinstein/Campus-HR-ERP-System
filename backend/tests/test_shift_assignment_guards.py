@@ -61,3 +61,31 @@ async def test_assign_worker_blocked_by_approved_time_off():
 
     assert exc_info.value.status_code == 409
     assert "time-off" in str(exc_info.value.detail).lower()
+
+
+async def test_assign_worker_blocked_when_no_slot_on_shift_day():
+    shift = MagicMock()
+    shift.id = "shift-2"
+    shift.startTime = datetime(2026, 4, 6, 10, 0, tzinfo=timezone.utc)  # Monday
+    shift.endTime = datetime(2026, 4, 6, 12, 0, tzinfo=timezone.utc)
+
+    worker = MagicMock()
+    worker.status = "ACTIVE"
+
+    tuesday_slot = MagicMock()
+    tuesday_slot.dayOfWeek = 1
+    tuesday_slot.startTime = "09:00"
+    tuesday_slot.endTime = "17:00"
+
+    with patch("app.services.shift_service.db") as mock_db:
+        mock_db.shift.find_unique = AsyncMock(return_value=shift)
+        mock_db.worker.find_unique = AsyncMock(return_value=worker)
+        # First call: day-specific slots for Monday (none). Second call: all slots (Tuesday slot exists).
+        mock_db.availability.find_many = AsyncMock(side_effect=[[], [tuesday_slot]])
+        mock_db.timeoffrequest.find_first = AsyncMock(return_value=None)
+
+        with pytest.raises(HTTPException) as exc_info:
+            await shift_service.assign_worker("shift-2", "worker-1", "sup-1")
+
+    assert exc_info.value.status_code == 409
+    assert "outside" in str(exc_info.value.detail).lower()

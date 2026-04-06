@@ -436,15 +436,22 @@ async def _validate_worker_availability_and_time_off(
     shift_start_hm = start_time.strftime("%H:%M")
     shift_end_hm = end_time.strftime("%H:%M")
 
-    availability = await db.availability.find_many(
+    day_slots = await db.availability.find_many(
         where={"workerId": worker_id, "dayOfWeek": day_of_week}
     )
-    # Only enforce the window when the worker has actually configured slots for this day.
-    # If no slots exist, treat the day as open (no constraint).
-    if availability:
+    all_slots = await db.availability.find_many(where={"workerId": worker_id})
+
+    # If worker configured any availability at all, enforce it strictly.
+    if all_slots and not day_slots:
+        raise HTTPException(
+            status_code=409,
+            detail="Shift is outside the worker's availability window",
+        )
+
+    if day_slots:
         fits_availability = any(
             slot.startTime <= shift_start_hm and slot.endTime >= shift_end_hm
-            for slot in availability
+            for slot in day_slots
         )
         if not fits_availability:
             raise HTTPException(
