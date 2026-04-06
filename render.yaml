@@ -25,6 +25,8 @@ services:
         sync: false
       - key: FRONTEND_URL
         sync: false
+      - key: SCHEDULING_TIMEZONE
+        value: "UTC"
       - key: ADMIN_BOOTSTRAP_KEY
         sync: false
       - key: SMTP_HOST

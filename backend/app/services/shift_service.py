@@ -1,8 +1,10 @@
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 from uuid import uuid4
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from fastapi import HTTPException
 
+from app.core.config import settings
 from app.db import get_db
 from app.schemas.shift import ShiftCreate, ShiftUpdate
 
@@ -438,15 +440,18 @@ async def _validate_worker_availability_and_time_off(
     if end_time <= start_time:
         raise HTTPException(status_code=400, detail="Shift end time must be after start time")
 
-    if start_time.date() != end_time.date():
+    scheduling_start = _to_scheduling_timezone(start_time)
+    scheduling_end = _to_scheduling_timezone(end_time)
+
+    if scheduling_start.date() != scheduling_end.date():
         raise HTTPException(
             status_code=409,
             detail="Shift cannot be assigned across multiple days for availability validation",
         )
 
-    day_of_week = start_time.weekday()  # Monday=0 ... Sunday=6
-    shift_start_minutes = _time_text_to_minutes(start_time.strftime("%H:%M:%S"))
-    shift_end_minutes = _time_text_to_minutes(end_time.strftime("%H:%M:%S"))
+    day_of_week = scheduling_start.weekday()  # Monday=0 ... Sunday=6
+    shift_start_minutes = _time_text_to_minutes(scheduling_start.strftime("%H:%M:%S"))
+    shift_end_minutes = _time_text_to_minutes(scheduling_end.strftime("%H:%M:%S"))
 
     day_slots = await db.availability.find_many(
         where={"workerId": worker_id, "dayOfWeek": day_of_week}
@@ -485,6 +490,23 @@ async def _validate_worker_availability_and_time_off(
             status_code=409,
             detail="Shift overlaps an approved time-off request",
         )
+
+
+def _get_scheduling_zone():
+    timezone_name = str(settings.SCHEDULING_TIMEZONE or "UTC").strip() or "UTC"
+    if timezone_name.upper() == "UTC":
+        return timezone.utc
+
+    try:
+        return ZoneInfo(timezone_name)
+    except ZoneInfoNotFoundError:
+        # Fall back to UTC so scheduling checks remain available even if tzdata is missing.
+        return timezone.utc
+
+
+def _to_scheduling_timezone(value: datetime) -> datetime:
+    aware = value if value.tzinfo is not None else value.replace(tzinfo=timezone.utc)
+    return aware.astimezone(_get_scheduling_zone())
 
 
 def _time_text_to_minutes(value: str) -> int:

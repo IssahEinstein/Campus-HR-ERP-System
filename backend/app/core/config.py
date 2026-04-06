@@ -32,6 +32,9 @@ class Settings(BaseSettings):
     FRONTEND_URL: str = "http://localhost:5173"
     ALLOWED_ORIGINS: str = "http://localhost:5173,http://localhost:3000"
 
+    # Scheduling/availability interpretation timezone for weekly day/time windows.
+    SCHEDULING_TIMEZONE: str = "UTC"
+
     @property
     def allowed_origins_list(self) -> list[str]:
         raw_origins = [self.FRONTEND_URL, *self.ALLOWED_ORIGINS.split(",")]

@@ -186,3 +186,42 @@ async def test_create_shift_with_worker_blocked_outside_availability_before_crea
     assert exc_info.value.status_code == 409
     assert "outside" in str(exc_info.value.detail).lower()
     mock_db.shift.create.assert_not_awaited()
+
+
+async def test_assign_worker_uses_scheduling_timezone_for_availability_day_match():
+    shift = MagicMock()
+    shift.id = "shift-tz"
+    # Monday UTC, but Sunday evening in America/New_York.
+    shift.startTime = datetime(2026, 4, 6, 0, 30, tzinfo=timezone.utc)
+    shift.endTime = datetime(2026, 4, 6, 1, 30, tzinfo=timezone.utc)
+
+    worker = MagicMock()
+    worker.status = "ACTIVE"
+
+    sunday_slot = MagicMock()
+    sunday_slot.dayOfWeek = 6
+    sunday_slot.startTime = "20:00"
+    sunday_slot.endTime = "22:00"
+
+    created_assignment = MagicMock()
+    created_assignment.id = "assignment-tz"
+
+    local_start = datetime(2026, 4, 5, 20, 30, tzinfo=timezone.utc)
+    local_end = datetime(2026, 4, 5, 21, 30, tzinfo=timezone.utc)
+
+    with patch(
+        "app.services.shift_service._to_scheduling_timezone",
+        side_effect=[local_start, local_end],
+    ), patch("app.services.shift_service.db") as mock_db:
+        mock_db.shift.find_unique = AsyncMock(return_value=shift)
+        mock_db.shift.find_many = AsyncMock(return_value=[shift])
+        mock_db.worker.find_unique = AsyncMock(return_value=worker)
+        mock_db.availability.find_many = AsyncMock(side_effect=[[sunday_slot], [sunday_slot]])
+        mock_db.timeoffrequest.find_first = AsyncMock(return_value=None)
+        mock_db.shiftassignment.find_many = AsyncMock(return_value=[])
+        mock_db.shiftassignment.find_first = AsyncMock(return_value=None)
+        mock_db.shiftassignment.create = AsyncMock(return_value=created_assignment)
+
+        assignment = await shift_service.assign_worker("shift-tz", "worker-1", "sup-1")
+
+    assert assignment.id == "assignment-tz"
