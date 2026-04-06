@@ -433,8 +433,8 @@ async def _validate_worker_availability_and_time_off(
         )
 
     day_of_week = start_time.weekday()  # Monday=0 ... Sunday=6
-    shift_start_hm = start_time.strftime("%H:%M")
-    shift_end_hm = end_time.strftime("%H:%M")
+    shift_start_minutes = _time_text_to_minutes(start_time.strftime("%H:%M:%S"))
+    shift_end_minutes = _time_text_to_minutes(end_time.strftime("%H:%M:%S"))
 
     day_slots = await db.availability.find_many(
         where={"workerId": worker_id, "dayOfWeek": day_of_week}
@@ -450,7 +450,8 @@ async def _validate_worker_availability_and_time_off(
 
     if day_slots:
         fits_availability = any(
-            slot.startTime <= shift_start_hm and slot.endTime >= shift_end_hm
+            _time_text_to_minutes(slot.startTime) <= shift_start_minutes
+            and _time_text_to_minutes(slot.endTime) >= shift_end_minutes
             for slot in day_slots
         )
         if not fits_availability:
@@ -472,3 +473,22 @@ async def _validate_worker_availability_and_time_off(
             status_code=409,
             detail="Shift overlaps an approved time-off request",
         )
+
+
+def _time_text_to_minutes(value: str) -> int:
+    """Convert 'HH:MM' or 'HH:MM:SS' style values into minutes after midnight."""
+    text = str(value or "").strip()
+    parts = text.split(":")
+    if len(parts) < 2:
+        raise HTTPException(status_code=400, detail=f"Invalid time value: {value}")
+
+    try:
+        hours = int(parts[0])
+        minutes = int(parts[1])
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=f"Invalid time value: {value}") from exc
+
+    if hours < 0 or hours > 23 or minutes < 0 or minutes > 59:
+        raise HTTPException(status_code=400, detail=f"Invalid time value: {value}")
+
+    return (hours * 60) + minutes

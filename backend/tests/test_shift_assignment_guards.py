@@ -89,3 +89,35 @@ async def test_assign_worker_blocked_when_no_slot_on_shift_day():
 
     assert exc_info.value.status_code == 409
     assert "outside" in str(exc_info.value.detail).lower()
+
+
+async def test_assign_worker_accepts_non_zero_padded_availability_times():
+    shift = MagicMock()
+    shift.id = "shift-3"
+    shift.startTime = datetime(2026, 4, 6, 16, 0, tzinfo=timezone.utc)
+    shift.endTime = datetime(2026, 4, 6, 17, 0, tzinfo=timezone.utc)
+
+    worker = MagicMock()
+    worker.status = "ACTIVE"
+
+    slot = MagicMock()
+    slot.dayOfWeek = 0
+    slot.startTime = "9:00"
+    slot.endTime = "17:00"
+
+    created_assignment = MagicMock()
+    created_assignment.id = "assignment-1"
+
+    with patch("app.services.shift_service.db") as mock_db:
+        mock_db.shift.find_unique = AsyncMock(return_value=shift)
+        mock_db.shift.find_many = AsyncMock(return_value=[shift])
+        mock_db.worker.find_unique = AsyncMock(return_value=worker)
+        mock_db.availability.find_many = AsyncMock(side_effect=[[slot], [slot]])
+        mock_db.timeoffrequest.find_first = AsyncMock(return_value=None)
+        mock_db.shiftassignment.find_many = AsyncMock(return_value=[])
+        mock_db.shiftassignment.find_first = AsyncMock(return_value=None)
+        mock_db.shiftassignment.create = AsyncMock(return_value=created_assignment)
+
+        assignment = await shift_service.assign_worker("shift-3", "worker-1", "sup-1")
+
+    assert assignment.id == "assignment-1"
