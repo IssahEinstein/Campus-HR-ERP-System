@@ -18,10 +18,12 @@ export default function SupervisorApprovals() {
   const [denyNote, setDenyNote] = useState({});
   const [denyOpen, setDenyOpen] = useState(null);
   const [permanentSwap, setPermanentSwap] = useState({});
+  const [errorMessage, setErrorMessage] = useState("");
   const navigate = useNavigate();
 
   const load = async () => {
     setLoading(true);
+    setErrorMessage("");
     try {
       const [to, sw] = await Promise.all([
         timeoffApi.pendingTimeOff(),
@@ -42,6 +44,7 @@ export default function SupervisorApprovals() {
 
   const approve = async (item) => {
     setActing({ id: item.id, action: "approve" });
+    setErrorMessage("");
     try {
       if (item._type === "TIMEOFF")
         await timeoffApi.reviewTimeOff(item.id, "APPROVED", "");
@@ -50,11 +53,14 @@ export default function SupervisorApprovals() {
           item.id,
           "APPROVED",
           "",
-          permanentSwap[item.id] ?? Boolean(item.preferredPermanent),
+          Boolean(permanentSwap[item.id]),
         );
       await load();
     } catch (e) {
       console.error(e);
+      setErrorMessage(
+        e.response?.data?.detail ?? "Could not approve request. Please try again.",
+      );
     } finally {
       setActing(null);
     }
@@ -63,6 +69,7 @@ export default function SupervisorApprovals() {
   const deny = async (item) => {
     const notes = denyNote[item.id] ?? "";
     setActing({ id: item.id, action: "deny" });
+    setErrorMessage("");
     try {
       if (item._type === "TIMEOFF")
         await timeoffApi.reviewTimeOff(item.id, "REJECTED", notes);
@@ -71,6 +78,9 @@ export default function SupervisorApprovals() {
       await load();
     } catch (e) {
       console.error(e);
+      setErrorMessage(
+        e.response?.data?.detail ?? "Could not deny request. Please try again.",
+      );
     } finally {
       setActing(null);
     }
@@ -117,6 +127,12 @@ export default function SupervisorApprovals() {
         </h1>
         <p className="text-gray-600">Review and approve worker requests.</p>
       </div>
+
+      {errorMessage && (
+        <div className="mb-6 rounded-lg px-4 py-3 text-sm bg-red-50 text-red-700 border border-red-200">
+          {errorMessage}
+        </div>
+      )}
 
       {all.length === 0 ? (
         <div
@@ -218,8 +234,7 @@ export default function SupervisorApprovals() {
                               <input
                                 type="checkbox"
                                 checked={
-                                  permanentSwap[item.id]
-                                  ?? Boolean(item.preferredPermanent)
+                                  Boolean(permanentSwap[item.id])
                                 }
                                 onChange={(e) =>
                                   setPermanentSwap((prev) => ({
