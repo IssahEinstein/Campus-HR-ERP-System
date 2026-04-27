@@ -13,6 +13,7 @@ import {
   Bell,
   MessageSquare,
   User,
+  GraduationCap,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import * as shiftsApi from "../../api/shifts";
@@ -99,6 +100,14 @@ export default function WorkerDashboard() {
   const ytdHours = ytdHoursFromStubs > 0 ? ytdHoursFromStubs : ytdHoursFromAttendance;
   const ytdNet = payStubs.reduce((sum, s) => sum + (Number(s.netPay) || 0), 0);
   const currency = (n) => `$${(Number(n) || 0).toFixed(2)}`;
+  const academic = user?.worker_academic ?? null;
+  const enrollmentLabel = {
+    FULL_TIME: "Full-Time",
+    PART_TIME: "Part-Time",
+    ON_LEAVE: "On Leave",
+    GRADUATED: "Graduated",
+  };
+
 
   const fmt = (iso) =>
     new Date(iso).toLocaleTimeString([], {
@@ -518,6 +527,53 @@ export default function WorkerDashboard() {
           />
 
           {/* ── Section 2: Quick Actions ── */}
+                    {/* ── Section 2: Academic Profile ── */}
+                    {academic && (
+                      <>
+                        <div className="px-5 pt-5 pb-4">
+                          <div className="flex items-center gap-1.5 mb-3">
+                            <GraduationCap size={13} style={{ color: "#00523E" }} />
+                            <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                              Academic Profile
+                            </h2>
+                          </div>
+                          <div className="space-y-2 text-sm">
+                            {academic.student_id && (
+                              <div className="flex justify-between">
+                                <span className="text-gray-500">Student ID</span>
+                                <span className="font-medium text-gray-800">{academic.student_id}</span>
+                              </div>
+                            )}
+                            {academic.gpa != null && (
+                              <div className="flex justify-between">
+                                <span className="text-gray-500">GPA</span>
+                                <span className="font-medium text-gray-800">{Number(academic.gpa).toFixed(2)}</span>
+                              </div>
+                            )}
+                            {academic.enrollment_status && (
+                              <div className="flex justify-between">
+                                <span className="text-gray-500">Enrollment</span>
+                                <span
+                                  className="px-2 py-0.5 rounded-full text-xs font-medium"
+                                  style={{ background: "rgba(0,82,62,0.10)", color: "#00523E" }}
+                                >
+                                  {enrollmentLabel[academic.enrollment_status] ?? academic.enrollment_status}
+                                </span>
+                              </div>
+                            )}
+                            {academic.course_load_credits != null && (
+                              <div className="flex justify-between">
+                                <span className="text-gray-500">Credit Hours</span>
+                                <span className="font-medium text-gray-800">{academic.course_load_credits}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="mx-5 border-t" style={{ borderColor: "rgba(0,82,62,0.09)" }} />
+                      </>
+                    )}
+
+                    {/* ── Section 3: Quick Actions ── */}
           <div className="px-5 pt-5 pb-4">
             <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
               Quick Actions

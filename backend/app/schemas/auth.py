@@ -25,6 +25,15 @@ class CurrentUser(BaseModel):
     profile_id: Optional[str] = None  # Admin.id / Supervisor.id / Worker.id
 
 
+class WorkerAcademicResponse(BaseModel):
+    student_id: Optional[str] = None
+    worker_id: Optional[str] = None
+    gpa: Optional[float] = None
+    enrollment_status: Optional[str] = None
+    course_load_credits: Optional[int] = None
+    status: Optional[str] = None
+
+
 class ProfileResponse(BaseModel):
     user_id: str
     email: str
@@ -34,6 +43,7 @@ class ProfileResponse(BaseModel):
     last_name: str
     bio: Optional[str] = None
     avatar_url: Optional[str] = None
+    worker_academic: Optional[WorkerAcademicResponse] = None
 
 
 class ProfileUpdateRequest(BaseModel):

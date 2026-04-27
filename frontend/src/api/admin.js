@@ -12,11 +12,14 @@ export const listAllWorkers = () =>
 export const listDepartments = () =>
   client.get("/admin/departments").then((r) => r.data);
 
-export const createDepartment = (name) =>
-  client.post("/admin/departments", { name }).then((r) => r.data);
+export const createDepartment = (payload) =>
+  client.post("/admin/departments", payload).then((r) => r.data);
+
+export const updateDepartment = (departmentId, payload) =>
+  client.patch(`/admin/departments/${departmentId}`, payload).then((r) => r.data);
 
 export const renameDepartment = (departmentId, name) =>
-  client.patch(`/admin/departments/${departmentId}`, { name }).then((r) => r.data);
+  updateDepartment(departmentId, { name });
 
 export const deleteDepartment = (departmentId) =>
   client.delete(`/admin/departments/${departmentId}`).then((r) => r.data);
@@ -32,6 +35,15 @@ export const resendSupervisorInvite = (supervisorId) =>
 
 export const resendAdminInvite = (adminProfileId) =>
   client.post(`/admin/admins/${adminProfileId}/resend-invite`).then((r) => r.data);
+
+export const activateAdmin = (adminProfileId) =>
+  client.patch(`/admin/admins/${adminProfileId}/activate`).then((r) => r.data);
+
+export const deactivateAdmin = (adminProfileId) =>
+  client.patch(`/admin/admins/${adminProfileId}/deactivate`).then((r) => r.data);
+
+export const deleteAdmin = (adminProfileId) =>
+  client.delete(`/admin/admins/${adminProfileId}`).then((r) => r.data);
 
 export const deleteSupervisor = (supervisorId) =>
   client.delete(`/admin/supervisors/${supervisorId}`).then((r) => r.data);

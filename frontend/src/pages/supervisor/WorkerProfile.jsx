@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
+import { GraduationCap } from "lucide-react";
 import * as supervisorsApi from "../../api/supervisors";
 import * as attendanceApi from "../../api/attendance";
 import * as payrollApi from "../../api/payroll";
@@ -132,6 +133,13 @@ export default function WorkerProfile() {
   const ytd = payStubs
     .filter((s) => s.status === "PAID")
     .reduce((sum, s) => sum + (Number(s.netPay) || 0), 0);
+  const enrollmentLabel = {
+    FULL_TIME: "Full-Time",
+    PART_TIME: "Part-Time",
+    ON_LEAVE: "On Leave",
+    GRADUATED: "Graduated",
+  };
+
   const totalHrs = attendance.reduce((sum, a) => {
     if (!a.checkInTime || !a.checkOutTime) return sum;
     return (
@@ -190,7 +198,7 @@ export default function WorkerProfile() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
         {[
           {
             label: "Total Hours Worked",
@@ -206,6 +214,11 @@ export default function WorkerProfile() {
           {
             label: "Attendance Records",
             value: attendance.length,
+            color: "text-gray-800",
+          },
+          {
+            label: "Pay Stubs",
+            value: payStubs.length,
             color: "text-gray-800",
           },
         ].map((stat) => (
@@ -234,6 +247,77 @@ export default function WorkerProfile() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Academic Profile */}
+        <div
+          className="rounded-2xl p-6 lg:col-span-2"
+          style={{
+            background:
+              "linear-gradient(160deg, rgba(255,255,255,0.78) 0%, rgba(242,250,245,0.88) 100%)",
+            backdropFilter: "blur(18px)",
+            WebkitBackdropFilter: "blur(18px)",
+            border: "1px solid rgba(0,82,62,0.11)",
+            boxShadow:
+              "0 8px 40px rgba(0,82,62,0.09), inset 0 1px 0 rgba(255,255,255,0.95)",
+          }}
+        >
+          <div className="flex items-center gap-2 mb-4">
+            <GraduationCap size={18} style={{ color: "#00523E" }} />
+            <h2 className="text-lg font-semibold">Academic Profile</h2>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
+            <div>
+              <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Student ID</p>
+              <p className="font-medium text-gray-800">{worker.studentId ?? worker.student_id ?? "—"}</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Worker ID</p>
+              <p className="font-medium text-gray-800">{worker.workerId ?? worker.worker_id ?? "—"}</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">GPA</p>
+              <p className="font-medium text-gray-800">
+                {worker.gpa != null ? Number(worker.gpa).toFixed(2) : "—"}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Enrollment</p>
+              <span
+                className="inline-block px-2 py-0.5 rounded-full text-xs font-medium"
+                style={{
+                  background: "rgba(0,82,62,0.10)",
+                  color: "#00523E",
+                }}
+              >
+                {enrollmentLabel[worker.enrollmentStatus] ??
+                  enrollmentLabel[worker.enrollment_status] ??
+                  worker.enrollmentStatus ??
+                  worker.enrollment_status ??
+                  "—"}
+              </span>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Credit Hours</p>
+              <p className="font-medium text-gray-800">
+                {worker.courseLoadCredits ?? worker.course_load_credits ?? "—"}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Status</p>
+              <span
+                className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${
+                  worker.status === "ACTIVE"
+                    ? "bg-green-100 text-green-700"
+                    : worker.status === "INACTIVE"
+                    ? "bg-red-100 text-red-700"
+                    : "bg-yellow-100 text-yellow-700"
+                }`}
+              >
+                {worker.status ?? "—"}
+              </span>
+            </div>
+          </div>
+        </div>
+
         <div
           className="rounded-2xl overflow-hidden"
           style={{

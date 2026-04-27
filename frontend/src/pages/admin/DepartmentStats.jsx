@@ -105,6 +105,11 @@ export default function DepartmentStats() {
   const totalActive = stats.reduce((s, d) => s + d.active_worker_count, 0);
   const totalStudents = stats.reduce((s, d) => s + d.student_count, 0);
   const totalSupervisors = stats.reduce((s, d) => s + d.supervisor_count, 0);
+  const formatCurrency = (value) =>
+    `$${Number(value ?? 0).toLocaleString(undefined, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -251,6 +256,21 @@ export default function DepartmentStats() {
                             : "linear-gradient(90deg, #d83b01, #e85c2b)",
                       }}
                     />
+                  </div>
+                </div>
+
+                <div className="mt-4 pt-3 border-t" style={{ borderColor: "rgba(0,82,62,0.10)" }}>
+                  <div className="flex justify-between text-xs text-gray-500">
+                    <span>Budget allocated</span>
+                    <span className="font-medium text-gray-700">
+                      {formatCurrency(dept.budget_allocated ?? dept.budgetAllocated)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-xs text-gray-500 mt-1">
+                    <span>Spent</span>
+                    <span className="font-medium text-gray-700">
+                      {formatCurrency(dept.budget_spent ?? dept.budgetSpent)}
+                    </span>
                   </div>
                 </div>
               </div>

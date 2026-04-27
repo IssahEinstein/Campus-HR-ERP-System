@@ -18,7 +18,7 @@ from app.schemas.invite import (
     InviteAdminRequest,
     InviteSupervisorRequest,
 )
-from app.schemas.profiles import AdminResponse, DepartmentResponse, DepartmentStatsResponse, SupervisorResponse, SystemStatsResponse, SystemUsageResponse, WorkerResponse, DeptPayrollResponse, DashboardSummaryResponse
+from app.schemas.profiles import AdminResponse, DashboardSummaryResponse, DepartmentResponse, DepartmentStatsResponse, DeptPayrollResponse, SupervisorResponse, SystemStatsResponse, SystemUsageResponse, WorkerResponse
 from app.services import admin_service, department_service, invite_service, analytics_service
 from app.core import usage as usage_tracker
 import csv
@@ -128,6 +128,7 @@ async def list_admins(
             "admin_id": admin.adminId,
             "user_id": admin.userId,
             "created_at": admin.createdAt,
+            "is_active": bool(admin.user and admin.user.isActive),
             "invite_pending": bool(
                 admin.user
                 and admin.user.adminInvite
@@ -140,6 +141,44 @@ async def list_admins(
         }
         for admin in admins
     ]
+
+
+@router.patch("/admins/{admin_profile_id}/deactivate", response_model=MessageResponse)
+async def deactivate_admin(
+    admin_profile_id: str,
+    current_user: Annotated[CurrentUser, Depends(require_role("ADMIN"))],
+):
+    """Admin deactivates another admin account."""
+    return await admin_service.set_admin_active_state(
+        admin_profile_id=admin_profile_id,
+        is_active=False,
+        acting_admin_profile_id=current_user.profile_id,
+    )
+
+
+@router.patch("/admins/{admin_profile_id}/activate", response_model=MessageResponse)
+async def activate_admin(
+    admin_profile_id: str,
+    current_user: Annotated[CurrentUser, Depends(require_role("ADMIN"))],
+):
+    """Admin reactivates another admin account."""
+    return await admin_service.set_admin_active_state(
+        admin_profile_id=admin_profile_id,
+        is_active=True,
+        acting_admin_profile_id=current_user.profile_id,
+    )
+
+
+@router.delete("/admins/{admin_profile_id}", response_model=MessageResponse)
+async def delete_admin(
+    admin_profile_id: str,
+    current_user: Annotated[CurrentUser, Depends(require_role("ADMIN"))],
+):
+    """Admin deletes another admin account."""
+    return await admin_service.delete_admin(
+        admin_profile_id=admin_profile_id,
+        acting_admin_profile_id=current_user.profile_id,
+    )
 
 
 @router.get("/workers", response_model=list[WorkerResponse])
@@ -159,7 +198,12 @@ async def create_department(
     current_user: Annotated[CurrentUser, Depends(require_role("ADMIN"))],
 ):
     """Admin creates a new department."""
-    return await department_service.create_department(body.name, admin_id=current_user.profile_id)
+    return await department_service.create_department(
+        body.name,
+        admin_id=current_user.profile_id,
+        budget_allocated=body.budget_allocated or 0,
+        budget_spent=body.budget_spent or 0,
+    )
 
 
 @router.get("/departments", response_model=list[DepartmentResponse])
@@ -176,8 +220,13 @@ async def rename_department(
     body: DepartmentUpdate,
     current_user: Annotated[CurrentUser, Depends(require_role("ADMIN"))],
 ):
-    """Admin renames a department."""
-    return await department_service.rename_department(department_id, body.name)
+    """Admin updates department name and/or budget fields."""
+    return await department_service.update_department(
+        department_id,
+        name=body.name,
+        budget_allocated=body.budget_allocated,
+        budget_spent=body.budget_spent,
+    )
 
 
 @router.delete("/departments/{department_id}", response_model=MessageResponse)
@@ -288,7 +337,8 @@ async def export_departments_csv(
         output,
         fieldnames=[
             "Department", "Supervisors", "Total Workers", "Active Workers",
-            "Students", "Gross Pay ($)", "Net Pay ($)", "Total Hours", "Pay Stubs",
+            "Students", "Budget Allocated ($)", "Budget Spent ($)", "Budget Remaining ($)",
+            "Gross Pay ($)", "Net Pay ($)", "Total Hours", "Pay Stubs",
         ],
     )
     writer.writeheader()
@@ -300,6 +350,9 @@ async def export_departments_csv(
             "Total Workers": dept["worker_count"],
             "Active Workers": dept["active_worker_count"],
             "Students": dept["student_count"],
+            "Budget Allocated ($)": dept.get("budget_allocated", 0.0),
+            "Budget Spent ($)": dept.get("budget_spent", 0.0),
+            "Budget Remaining ($)": dept.get("budget_remaining", 0.0),
             "Gross Pay ($)": pr.get("total_gross_pay", 0.0),
             "Net Pay ($)": pr.get("total_net_pay", 0.0),
             "Total Hours": pr.get("total_hours", 0.0),

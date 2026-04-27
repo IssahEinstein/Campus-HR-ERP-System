@@ -13,7 +13,8 @@ The current platform is also being expanded toward a unified university ERP that
 • JWT‑based auth (30‑min access tokens, 7‑day refresh tokens)
 • HttpOnly refresh cookies for secure session management
 • Device‑based session tracking
-• Role‑based authorization (Supervisor vs Worker)
+• Role‑based authorization (Admin, Supervisor, Worker)
+• Account activation/deactivation enforcement in login, refresh, and protected routes
 • Access tokens carry normalized role/profile claims for protected routes and client-side role-aware flows
 
 
@@ -23,6 +24,8 @@ The current platform is also being expanded toward a unified university ERP that
 • Worker pre‑registration (invitation system)
 • Email‑based signup validation
 • Department + role assignments
+• Worker academic profile capture (student ID, GPA, enrollment status, course load)
+• Multi-level admin lifecycle controls (activate, deactivate, delete) with system-admin enforcement
 
 
  Scheduling & Shifts
@@ -57,38 +60,31 @@ The current platform is also being expanded toward a unified university ERP that
 
 ---
 
- Planned ERP Expansion
-
-The next major product direction is to evolve Campus Job ERP into a broader university ERP in phased releases.
+ ERP Expansion Status (Implemented)
 
 Unified University ERP Version
 
-• Connect campus jobs, academics, and finances into one platform
-• Link student work profiles with academic records
-• Track both employment activity and enrolment activity in one system
+• Campus jobs, academic worker metadata, and finance visibility are surfaced in one platform
+• Student work profiles are linked with academic records (GPA, enrollment status, credits)
+• Employment activity and enrollment activity are exposed together in worker/supervisor/admin views
 
 Department-Level Expansion Within the ERP
 
-• Track department budgets and spending
-• Monitor department workforce size
-• Compare department workload and resource use
-• View how many students each department is handling
+• Department budgets and spending are stored and displayed
+• Department workforce size is tracked (supervisors, workers, students)
+• Department workload/resource use is represented through active-worker and staffing metrics
+• Department cards and CSV exports include budget allocated/spent/remaining values
 
 System Monitoring and Performance Oversight
 
-• Identify the most frequently used features
-• Surface system usage, performance, and operational trends
+• Most-used API features are tracked since server start
+• Admin analytics provides friendly feature labels (including dynamic route pattern mapping)
 
 Multi-Level System Admins
 
-• Let system admins create and manage other admins
-• Create a system-level admin above department admin
-• Expand admin controls beyond department-scoped oversight
-
-Implementation Note
-
-• These capabilities are roadmap items unless explicitly marked as implemented in the API, schema, service, or frontend sections of this README
-• Feature work should update this README alongside code changes so the documented scope stays aligned with the product state
+• System admins can create and manage other admins
+• System-level admin sits above department-level admin
+• Sensitive admin operations (invite admin, activate/deactivate admin, delete admin) are restricted to system admins
 
 
 ---
@@ -204,6 +200,14 @@ GET	/api/admin/system/stats	Total admins (system vs dept level), supervisors, wo
 GET	/api/admin/system/usage	Most-used API features since server start
 
 
+Admin — Multi-Level Admin Controls (implemented)
+
+Method	Endpoint	Description
+PATCH	/api/admin/admins/{admin_profile_id}/activate	Reactivate an admin account (system admin only)
+PATCH	/api/admin/admins/{admin_profile_id}/deactivate	Deactivate an admin account (system admin only)
+DELETE	/api/admin/admins/{admin_profile_id}	Delete an admin account (system admin only)
+
+
 Multi-Level Admin Model (implemented)
 
 • System admin — bootstrapped directly (no AdminInvite record); has full system-wide authority
@@ -257,6 +261,11 @@ SMTP_PASSWORD=your-app-password
 
 APP_NAME=Campus Job ERP
 FRONTEND_URL=http://localhost:3000
+
+Local development note
+
+• Use matching frontend origins in ALLOWED_ORIGINS (for example: http://127.0.0.1:5173 and http://localhost:5173)
+• Refresh cookie secure flag is automatically relaxed for localhost/127.0.0.1 frontend URLs to support local HTTP testing
 
 
 ---

@@ -39,18 +39,67 @@ const FEATURE_NAME_MAP = {
   "/api/payroll/report": "Payroll Report",
   "/api/timeoff/pending": "Pending Time Off",
   "/api/timeoff/my": "My Time Off",
+  "/api/timeoff": "All Time Off Requests",
   "/api/timeoff/approve": "Approve Time Off",
   "/api/feedback/my": "My Feedback",
   "/api/feedback/create": "Submit Feedback",
   "/api/attendance/my": "My Attendance",
   "/api/availability/my": "My Availability",
+  "/api/availability": "Availability",
   "/api/shifts": "Shifts",
   "/api/shifts/my-assignments": "My Assignments",
   "/api/shifts/create": "Create Shift",
+  "/api/shiftswap/my": "My Shift Swaps",
+  "/api/supervisor/workers": "Team Members",
+  "/api/supervisor/invite-worker": "Invite Worker",
+  "/api/supervisor/locations": "Supervisor Locations",
+  "/api/admin/departments/export": "Export Departments",
 };
 
+// Patterns for dynamic routes (matched in order, first match wins)
+const FEATURE_PATTERN_MAP = [
+  // Admin-specific worker/supervisor management with IDs
+  [/^\/api\/admin\/workers\/[^/]+\/deactivate$/, "Deactivate Worker"],
+  [/^\/api\/admin\/workers\/[^/]+\/activate$/, "Activate Worker"],
+  [/^\/api\/admin\/supervisors\/[^/]+\/deactivate$/, "Deactivate Supervisor"],
+  [/^\/api\/admin\/supervisors\/[^/]+\/activate$/, "Activate Supervisor"],
+  [/^\/api\/admin\/admins\/[^/]+\/deactivate$/, "Deactivate Admin"],
+  [/^\/api\/admin\/admins\/[^/]+\/activate$/, "Activate Admin"],
+  [/^\/api\/admin\/admins\/[^/]+$/, "Manage Admin"],
+  [/^\/api\/admin\/departments\/[^/]+\/export$/, "Export Department"],
+  [/^\/api\/admin\/departments\/export$/, "Export Departments"],
+  [/^\/api\/admin\/departments\/[^/]+$/, "Manage Department"],
+  // Per-worker admin views
+  [/^\/api\/attendance\/worker\/[^/]+$/, "Worker Attendance"],
+  [/^\/api\/payroll\/worker\/[^/]+$/, "Worker Payroll"],
+  [/^\/api\/availability\/worker\/[^/]+$/, "Worker Availability"],
+  [/^\/api\/timeoff\/worker\/[^/]+$/, "Worker Time Off"],
+  [/^\/api\/feedback\/workers\/[^/]+$/, "Give Worker Feedback"],
+  // Supervisor routes with IDs
+  [/^\/api\/supervisor\/workers\/[^/]+\/resend-invite$/, "Resend Worker Invite"],
+  [/^\/api\/supervisor\/workers\/[^/]+$/, "View Worker Profile"],
+  [/^\/api\/supervisor\/workers$/, "Team Members"],
+  [/^\/api\/supervisor\/locations$/, "Supervisor Locations"],
+  // Shift routes with IDs
+  [/^\/api\/shifts\/[^/]+\/assign$/, "Assign Worker to Shift"],
+  [/^\/api\/shifts\/[^/]+\/unassign$/, "Unassign Worker from Shift"],
+  [/^\/api\/shifts\/[^/]+$/, "Manage Shift"],
+  // Time-off review with IDs
+  [/^\/api\/timeoff\/[^/]+\/review$/, "Review Time Off Request"],
+  [/^\/api\/timeoff\/[^/]+$/, "Time Off Request"],
+  // Shift swap with IDs
+  [/^\/api\/shiftswap\/[^/]+\/review$/, "Review Shift Swap"],
+  [/^\/api\/shiftswap\/my$/, "My Shift Swaps"],
+  [/^\/api\/shiftswap\/[^/]+$/, "Shift Swap Request"],
+];
+
 const getFeatureName = (path) => {
-  return FEATURE_NAME_MAP[path] || path; // Fallback to path if no mapping exists
+  if (FEATURE_NAME_MAP[path]) return FEATURE_NAME_MAP[path];
+  for (const [pattern, label] of FEATURE_PATTERN_MAP) {
+    if (pattern.test(path)) return label;
+  }
+  // Last resort: strip /api/ prefix and humanize
+  return path.replace(/^\/api\//, "").replace(/\//g, " › ");
 };
 
 const CARD_STYLE = {

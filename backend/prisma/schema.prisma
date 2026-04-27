@@ -31,6 +31,13 @@ enum WorkerStatus {
   ON_LEAVE
 }
 
+enum EnrollmentStatus {
+  FULL_TIME
+  PART_TIME
+  ON_LEAVE
+  GRADUATED
+}
+
 enum ShiftStatus {
   SCHEDULED
   CANCELLED
@@ -75,6 +82,7 @@ model User {
   bio          String?
   avatarUrl    String?
   role         UserRole
+  isActive     Boolean   @default(true)
 
   supervisorProfile Supervisor?
   workerProfile     Worker?
@@ -88,6 +96,7 @@ model User {
 
   @@index([email])
   @@index([role])
+  @@index([isActive])
 }
 
 model SupervisorInvite {
@@ -140,6 +149,9 @@ model Session {
 model Department {
   id   String @id @default(cuid())
   name String @unique
+
+  budgetAllocated Float @default(0)
+  budgetSpent     Float @default(0)
 
   adminId      String? // Admin who created/manages this department
   admin        Admin?  @relation(fields: [adminId], references: [id])
@@ -234,6 +246,9 @@ model Worker {
   studentId     String     @unique
   workerId      String     @unique // 800 number or worker identifier (human-readable ID)
   status        WorkerStatus @default(INVITED)
+  gpa           Float?
+  enrollmentStatus EnrollmentStatus @default(FULL_TIME)
+  courseLoadCredits Int?
 
   assignments      ShiftAssignment[]
   checkInOuts      CheckInOut[]
@@ -250,6 +265,7 @@ model Worker {
 
   @@index([departmentId])
   @@index([status])
+  @@index([enrollmentStatus])
 }
 
 model WorkerInvite {

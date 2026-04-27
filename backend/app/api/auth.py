@@ -25,7 +25,7 @@ _COOKIE_SAMESITE = "lax" if _IS_LOCAL_FRONTEND else "none"
 _COOKIE_OPTS = {
     "key": _REFRESH_COOKIE,
     "httponly": True,
-    "secure": True,       # HTTPS only in production; set False for local HTTP dev
+    "secure": not _IS_LOCAL_FRONTEND,
     "samesite": _COOKIE_SAMESITE,
     "max_age": 60 * 60 * 24 * 7,  # 7 days in seconds
 }

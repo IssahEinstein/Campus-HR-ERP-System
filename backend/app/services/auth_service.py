@@ -107,6 +107,9 @@ async def login(email: str, password: str, device_id: str | None = None) -> tupl
             detail="Account not yet activated. Please accept your invite email first.",
         )
 
+    if not getattr(user, "isActive", True):
+        raise HTTPException(status_code=403, detail="Account is deactivated. Contact an administrator.")
+
     if not verify_password(password, user.passwordHash):
         raise InvalidCredentials()
 
@@ -184,6 +187,10 @@ async def refresh(refresh_token: str) -> RefreshResponse:
     if user is None:
         raise SessionRevoked()
 
+    if not getattr(user, "isActive", True):
+        await revoke_all_user_sessions(user_id)
+        raise SessionRevoked()
+
     profile_id = _extract_profile_id(user)
 
     access_token = create_access_token(
@@ -215,7 +222,7 @@ async def get_profile(current_user) -> dict:
     if user is None:
         raise SessionRevoked()
 
-    return {
+    profile = {
         "user_id": user.id,
         "email": user.email,
         "role": str(user.role),
@@ -225,6 +232,19 @@ async def get_profile(current_user) -> dict:
         "bio": getattr(user, "bio", None),
         "avatar_url": getattr(user, "avatarUrl", None),
     }
+
+    if str(user.role) == "WORKER" and user.workerProfile:
+        wp = user.workerProfile
+        profile["worker_academic"] = {
+            "student_id": wp.studentId,
+            "worker_id": wp.workerId,
+            "gpa": wp.gpa,
+            "enrollment_status": str(wp.enrollmentStatus) if wp.enrollmentStatus else None,
+            "course_load_credits": wp.courseLoadCredits,
+            "status": str(wp.status) if wp.status else None,
+        }
+
+    return profile
 
 
 async def update_profile(current_user, first_name: str, last_name: str, bio: str | None) -> dict:

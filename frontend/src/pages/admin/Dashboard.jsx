@@ -15,6 +15,8 @@ export default function AdminDashboard() {
   const [departments, setDepartments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [deptName, setDeptName] = useState("");
+  const [deptBudgetAllocated, setDeptBudgetAllocated] = useState("");
+  const [deptBudgetSpent, setDeptBudgetSpent] = useState("");
   const [invite, setInvite] = useState({
     email: "",
     first_name: "",
@@ -33,6 +35,8 @@ export default function AdminDashboard() {
   const [sendingAdminInvite, setSendingAdminInvite] = useState(false);
   const [resendingSupervisorId, setResendingSupervisorId] = useState("");
   const [resendingAdminId, setResendingAdminId] = useState("");
+  const [updatingAdminId, setUpdatingAdminId] = useState("");
+  const [deletingAdminId, setDeletingAdminId] = useState("");
   const [deletingSupervisorId, setDeletingSupervisorId] = useState("");
   const [editingDepartmentId, setEditingDepartmentId] = useState("");
   const [editingDepartmentName, setEditingDepartmentName] = useState("");
@@ -130,8 +134,14 @@ export default function AdminDashboard() {
     if (!deptName.trim()) return;
     setSavingDept(true);
     try {
-      await adminApi.createDepartment(deptName.trim());
+      await adminApi.createDepartment({
+        name: deptName.trim(),
+        budget_allocated: deptBudgetAllocated === "" ? 0 : Number(deptBudgetAllocated),
+        budget_spent: deptBudgetSpent === "" ? 0 : Number(deptBudgetSpent),
+      });
       setDeptName("");
+      setDeptBudgetAllocated("");
+      setDeptBudgetSpent("");
       pushToast("Department created.");
       await load();
     } catch (e2) {
@@ -254,6 +264,46 @@ export default function AdminDashboard() {
     }
   };
 
+  const toggleAdminActive = async (admin, nextActive) => {
+    setUpdatingAdminId(admin.id);
+    try {
+      const res = nextActive
+        ? await adminApi.activateAdmin(admin.id)
+        : await adminApi.deactivateAdmin(admin.id);
+      pushToast(res?.message ?? "Admin status updated.");
+      await load();
+    } catch (e2) {
+      pushToast(
+        e2.response?.data?.detail ?? "Failed to update admin status.",
+        "error",
+      );
+    } finally {
+      setUpdatingAdminId("");
+    }
+  };
+
+  const removeAdmin = async (admin) => {
+    const fullName = personName(admin);
+    const confirmed = window.confirm(
+      `Delete admin ${fullName}? This action cannot be undone.`,
+    );
+    if (!confirmed) return;
+
+    setDeletingAdminId(admin.id);
+    try {
+      const res = await adminApi.deleteAdmin(admin.id);
+      pushToast(res?.message ?? "Admin deleted.");
+      await load();
+    } catch (e2) {
+      pushToast(
+        e2.response?.data?.detail ?? "Failed to delete admin.",
+        "error",
+      );
+    } finally {
+      setDeletingAdminId("");
+    }
+  };
+
   const isInvitePending = (supervisor) => {
     return Boolean(supervisor?.invitePending);
   };
@@ -360,8 +410,10 @@ export default function AdminDashboard() {
     const query = adminQuery.trim().toLowerCase();
     let rows = admins.filter((a) => {
       const pending = Boolean(a?.invitePending);
+      const active = Boolean(a?.isActive);
       if (adminStatusFilter === "pending" && !pending) return false;
-      if (adminStatusFilter === "active" && pending) return false;
+      if (adminStatusFilter === "active" && (pending || !active)) return false;
+      if (adminStatusFilter === "deactivated" && (pending || active)) return false;
 
       if (!query) return true;
       const name = personName(a).toLowerCase();
@@ -559,6 +611,34 @@ export default function AdminDashboard() {
             }}
             required
           />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={deptBudgetAllocated}
+              onChange={(e) => setDeptBudgetAllocated(e.target.value)}
+              placeholder="Budget allocated"
+              className="rounded-xl px-3 py-2 text-sm"
+              style={{
+                border: "1px solid rgba(0,82,62,0.18)",
+                background: "rgba(255,255,255,0.7)",
+              }}
+            />
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={deptBudgetSpent}
+              onChange={(e) => setDeptBudgetSpent(e.target.value)}
+              placeholder="Budget spent"
+              className="rounded-xl px-3 py-2 text-sm"
+              style={{
+                border: "1px solid rgba(0,82,62,0.18)",
+                background: "rgba(255,255,255,0.7)",
+              }}
+            />
+          </div>
           <button
             disabled={savingDept}
             className="px-4 py-2 rounded-xl text-sm font-medium text-white hover:opacity-90 disabled:opacity-60"
@@ -763,6 +843,7 @@ export default function AdminDashboard() {
                 <option value="all">All statuses</option>
                 <option value="pending">Pending</option>
                 <option value="active">Activated</option>
+                <option value="deactivated">Deactivated</option>
               </select>
               <select
                 value={adminSort}
@@ -786,6 +867,7 @@ export default function AdminDashboard() {
           >
             {filteredAdmins.map((a) => {
               const isPending = Boolean(a?.invitePending);
+              const isActive = Boolean(a?.isActive);
               return (
                 <div
                   key={a.id}
@@ -807,6 +889,10 @@ export default function AdminDashboard() {
                           <span className="text-yellow-700 bg-yellow-50 px-2 py-0.5 rounded-full border border-yellow-200">
                             Invite pending
                           </span>
+                        ) : !isActive ? (
+                          <span className="text-red-700 bg-red-50 px-2 py-0.5 rounded-full border border-red-200">
+                            Deactivated
+                          </span>
                         ) : (
                           <span className="text-green-700 bg-green-50 px-2 py-0.5 rounded-full border border-green-200">
                             Activated
@@ -814,21 +900,47 @@ export default function AdminDashboard() {
                         )}
                       </div>
                     </div>
-                    {isPending && (
+                    <div className="flex flex-col items-end gap-2">
+                      {isPending && (
+                        <button
+                          onClick={() => resendAdminInvite(a)}
+                          disabled={resendingAdminId === a.id}
+                          className="text-xs px-2 py-1 rounded-lg disabled:opacity-60"
+                          style={{
+                            border: "1px solid rgba(0,82,62,0.18)",
+                            color: "#00523E",
+                          }}
+                        >
+                          {resendingAdminId === a.id
+                            ? "Resending..."
+                            : "Resend Invite"}
+                        </button>
+                      )}
+                      {!isPending && (
+                        <button
+                          onClick={() => toggleAdminActive(a, !isActive)}
+                          disabled={updatingAdminId === a.id || deletingAdminId === a.id}
+                          className="text-xs px-2 py-1 rounded-lg disabled:opacity-60"
+                          style={{
+                            border: "1px solid rgba(0,82,62,0.18)",
+                            color: isActive ? "#b91c1c" : "#00523E",
+                          }}
+                        >
+                          {updatingAdminId === a.id
+                            ? "Updating..."
+                            : isActive
+                              ? "Deactivate"
+                              : "Activate"}
+                        </button>
+                      )}
                       <button
-                        onClick={() => resendAdminInvite(a)}
-                        disabled={resendingAdminId === a.id}
-                        className="text-xs px-2 py-1 rounded-lg disabled:opacity-60"
-                        style={{
-                          border: "1px solid rgba(0,82,62,0.18)",
-                          color: "#00523E",
-                        }}
+                        onClick={() => removeAdmin(a)}
+                        disabled={updatingAdminId === a.id || deletingAdminId === a.id}
+                        className="text-xs px-2 py-1 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 disabled:opacity-60"
                       >
-                        {resendingAdminId === a.id
-                          ? "Resending..."
-                          : "Resend Invite"}
+                        {deletingAdminId === a.id ? "Deleting..." : "Delete"}
                       </button>
-                    )}
+                    </div>
                   </div>
                 </div>
               );
@@ -881,7 +993,12 @@ export default function AdminDashboard() {
                       autoFocus
                     />
                   ) : (
-                    <div className="text-gray-700 truncate">{d.name}</div>
+                    <>
+                      <div className="text-gray-700 truncate">{d.name}</div>
+                      <div className="text-xs text-gray-500 mt-1">
+                        Budget: ${Number(d.budgetAllocated ?? 0).toLocaleString()} | Spent: ${Number(d.budgetSpent ?? 0).toLocaleString()}
+                      </div>
+                    </>
                   )}
                   <div className="text-xs text-gray-400">{d.id.slice(0, 8)}...</div>
                 </div>
@@ -1045,6 +1162,15 @@ export default function AdminDashboard() {
                 <div className="text-gray-400 text-xs mt-1">
                   {w.department?.name ?? "No department"} ·{" "}
                   {w.status ?? "UNKNOWN"}
+                </div>
+                <div className="text-gray-500 text-xs mt-1">
+                  Student ID: {w.studentId ?? w.student_id ?? "-"}
+                </div>
+                <div className="text-gray-500 text-xs mt-1">
+                  GPA: {w.gpa == null ? "-" : Number(w.gpa).toFixed(2)} · Enrollment:{" "}
+                  {w.enrollmentStatus ?? w.enrollment_status ?? "-"}
+                  {" · Credits: "}
+                  {w.courseLoadCredits ?? w.course_load_credits ?? "-"}
                 </div>
               </div>
             ))}
