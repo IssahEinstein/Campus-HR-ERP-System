@@ -1,0 +1,49 @@
+services:
+  - type: web
+    name: campus-hr-backend
+    runtime: python
+    rootDir: backend
+    plan: free
+    buildCommand: pip install -r requirements.txt && prisma py fetch && prisma generate && prisma migrate deploy && (cp /opt/render/.cache/prisma-python/binaries/*/*/prisma-query-engine-debian-openssl-3.0.x ./prisma-query-engine-debian-openssl-3.0.x || cp /opt/render/.cache/prisma-python/binaries/*/*/node_modules/prisma/query-engine-debian-openssl-3.0.x ./prisma-query-engine-debian-openssl-3.0.x) && chmod +x ./prisma-query-engine-debian-openssl-3.0.x
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.11
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ALGORITHM
+        value: HS256
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: "30"
+      - key: REFRESH_TOKEN_EXPIRE_DAYS
+        value: "7"
+      - key: DATABASE_URL
+        sync: false
+      - key: DIRECT_URL
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: ALLOWED_ORIGINS
+        sync: false
+      - key: SCHEDULING_TIMEZONE
+        value: "UTC"
+      - key: ADMIN_BOOTSTRAP_KEY
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: SMTP_FROM
+        sync: false
+      - key: SMTP_MAX_RETRIES
+        value: "0"
+      - key: SMTP_RETRY_DELAY_SECONDS
+        value: "1.0"
+      - key: SMTP_TIMEOUT_SECONDS
+        value: "8.0"

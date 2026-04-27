@@ -1,16 +1,62 @@
-# React + Vite
+# Campus Job ERP — Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This folder contains the Vite React frontend for the Campus Job ERP prototype.
 
-Currently, two official plugins are available:
+Quick start (local):
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+```bash
+cd frontend
+npm install
+npm run dev    # http://localhost:5173/
+```
 
-## React Compiler
+Build for production:
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+```bash
+npm run build
+# Preview the production build:
+npm run preview
+```
 
-## Expanding the ESLint configuration
+Notes:
+- Uses Tailwind CSS via PostCSS. `postcss.config.cjs` and `tailwind.config.cjs` are present in this folder.
+- Dev dependencies include `tailwindcss` and `autoprefixer` to allow standalone installs for reviewers.
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Deploy To Vercel
+
+This frontend is ready to deploy on Vercel.
+
+### 1) Import project
+
+1. Push your repo to GitHub.
+2. In Vercel, click "Add New Project" and import the repo.
+3. Set the Root Directory to `frontend`.
+
+### 2) Build settings
+
+The project includes `vercel.json` with:
+
+- Build command: `npm run build`
+- Output directory: `dist`
+- SPA rewrite: all routes -> `index.html`
+
+This rewrite is required because the app uses React Router with browser history.
+
+### 3) Environment variables
+
+In Vercel Project Settings -> Environment Variables, add:
+
+- `VITE_API_URL` = your backend origin (example: `https://api.your-domain.com`)
+
+The frontend API client calls `${VITE_API_URL}/api/...`.
+
+### 4) Backend requirements
+
+Make sure your backend allows requests from your Vercel domain and is configured for cross-origin auth/cookies if you rely on refresh-token cookies.
+
+### 5) Deploy
+
+Trigger deployment from Vercel. After it completes:
+
+1. Open the deployment URL.
+2. Test direct navigation to routes like `/login`, `/worker/dashboard`, `/supervisor/dashboard`.

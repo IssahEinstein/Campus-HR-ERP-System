@@ -31,6 +31,13 @@ enum WorkerStatus {
   ON_LEAVE
 }
 
+enum EnrollmentStatus {
+  FULL_TIME
+  PART_TIME
+  ON_LEAVE
+  GRADUATED
+}
+
 enum ShiftStatus {
   SCHEDULED
   CANCELLED
@@ -72,18 +79,50 @@ model User {
   passwordHash String
   firstName    String
   lastName     String
+  bio          String?
+  avatarUrl    String?
   role         UserRole
+  isActive     Boolean   @default(true)
 
   supervisorProfile Supervisor?
   workerProfile     Worker?
   adminProfile      Admin?
   sessions          Session[]
+  adminInvite       AdminInvite?
+  supervisorInvite  SupervisorInvite?
 
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
   @@index([email])
   @@index([role])
+  @@index([isActive])
+}
+
+model SupervisorInvite {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([expiresAt])
+}
+
+model AdminInvite {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  invitedByAdminId String?
+  tokenHash String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([invitedByAdminId])
+  @@index([expiresAt])
 }
 
 model Session {
@@ -111,6 +150,9 @@ model Department {
   id   String @id @default(cuid())
   name String @unique
 
+  budgetAllocated Float @default(0)
+  budgetSpent     Float @default(0)
+
   adminId      String? // Admin who created/manages this department
   admin        Admin?  @relation(fields: [adminId], references: [id])
 
@@ -122,6 +164,26 @@ model Department {
 
   @@index([name])
   @@index([adminId])
+}
+
+model SemesterSetting {
+  key               String   @id @default("default")
+  semesterStartDate DateTime
+  semesterEndDate   DateTime
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model SupervisorLocation {
+  id           String     @id
+  supervisorId String
+  supervisor   Supervisor @relation(fields: [supervisorId], references: [id], onDelete: Cascade)
+  name         String
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@index([supervisorId])
+  @@unique([supervisorId, name])
 }
 
 /// Admin profile - represents a system-level administrator who can:
@@ -166,6 +228,7 @@ model Supervisor {
   approvedTimeOff  TimeOffRequest[]  @relation("TimeOffApprovedBy")
   approvedSwaps    ShiftSwapRequest[] @relation("SwapApprovedBy")
   feedbackGiven    Feedback[] @relation("SupervisorFeedback")
+  locations        SupervisorLocation[]
 
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
@@ -183,6 +246,9 @@ model Worker {
   studentId     String     @unique
   workerId      String     @unique // 800 number or worker identifier (human-readable ID)
   status        WorkerStatus @default(INVITED)
+  gpa           Float?
+  enrollmentStatus EnrollmentStatus @default(FULL_TIME)
+  courseLoadCredits Int?
 
   assignments      ShiftAssignment[]
   checkInOuts      CheckInOut[]
@@ -199,6 +265,7 @@ model Worker {
 
   @@index([departmentId])
   @@index([status])
+  @@index([enrollmentStatus])
 }
 
 model WorkerInvite {
@@ -233,6 +300,8 @@ model Shift {
   endTime       DateTime
   status        ShiftStatus @default(SCHEDULED)
   expectedHours Float?
+  isRecurring   Boolean @default(false)
+  recurrenceGroupId String?
 
   assignments   ShiftAssignment[]
 
@@ -242,6 +311,7 @@ model Shift {
   @@index([supervisorId])
   @@index([startTime])
   @@index([status])
+  @@index([recurrenceGroupId])
 }
 
 model ShiftAssignment {
@@ -359,6 +429,7 @@ model ShiftSwapRequest {
 
   reason         String?
   approvalNotes  String?
+  preferredPermanent Boolean @default(false)
 
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
