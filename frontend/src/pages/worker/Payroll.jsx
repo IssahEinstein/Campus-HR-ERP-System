@@ -9,17 +9,21 @@ import {
   CheckCircle,
 } from "lucide-react";
 import * as payrollApi from "../../api/payroll";
+import * as attendanceApi from "../../api/attendance";
 import PayStubModal from "../../components/modals/PayStubModal";
 
 export default function WorkerPayroll() {
   const [stubs, setStubs] = useState([]);
+  const [attendance, setAttendance] = useState([]);
   const [selected, setSelected] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    payrollApi
-      .myPayStubs()
-      .then((data) => setStubs(data))
+    Promise.all([payrollApi.myPayStubs(), attendanceApi.myAttendance()])
+      .then(([stubData, attendanceData]) => {
+        setStubs(Array.isArray(stubData) ? stubData : []);
+        setAttendance(Array.isArray(attendanceData) ? attendanceData : []);
+      })
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
@@ -32,20 +36,68 @@ export default function WorkerPayroll() {
     });
   const currency = (n) => `$${(Number(n) || 0).toFixed(2)}`;
 
-  const paidStubs = stubs.filter((s) => s.status === "PAID");
-  const ytdNet = paidStubs.reduce((sum, s) => sum + (Number(s.netPay) || 0), 0);
-  const ytdGross = paidStubs.reduce(
+  const ytdNet = stubs.reduce((sum, s) => sum + (Number(s.netPay) || 0), 0);
+  const ytdGross = stubs.reduce(
     (sum, s) => sum + (Number(s.grossPay) || 0),
     0,
   );
-  const ytdHours = paidStubs.reduce(
+  const ytdHoursFromStubs = stubs.reduce(
     (sum, s) => sum + (Number(s.totalHours) || 0),
     0,
   );
+  const ytdHoursFromAttendance = attendance.reduce(
+    (sum, r) => sum + (Number(r.hoursWorked) || 0),
+    0,
+  );
+  const ytdHours = ytdHoursFromStubs > 0 ? ytdHoursFromStubs : ytdHoursFromAttendance;
 
   const latest = stubs[0] ?? null;
   const currentPeriodHours = Number(latest?.totalHours || 0);
   const projectedGross = Number(latest?.grossPay || 0);
+
+  const downloadAllStubsCsv = () => {
+    if (!stubs.length) return;
+
+    const headers = [
+      "Pay Period Start",
+      "Pay Period End",
+      "Status",
+      "Total Hours",
+      "Hourly Rate",
+      "Gross Pay",
+      "Tax Withheld",
+      "Deductions",
+      "Net Pay",
+      "Created At",
+    ];
+
+    const rows = stubs.map((s) => [
+      s.payPeriodStart,
+      s.payPeriodEnd,
+      s.status,
+      Number(s.totalHours || 0).toFixed(2),
+      Number(s.hourlyRate || 0).toFixed(2),
+      Number(s.grossPay || 0).toFixed(2),
+      Number(s.taxWithheld || 0).toFixed(2),
+      Number(s.deductions || 0).toFixed(2),
+      Number(s.netPay || 0).toFixed(2),
+      s.createdAt,
+    ]);
+
+    const csv = [headers, ...rows]
+      .map((row) => row.map((v) => `"${String(v ?? "").replaceAll('"', '""')}"`).join(","))
+      .join("\n");
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `paystubs-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
 
   if (loading)
     return (
@@ -88,7 +140,7 @@ export default function WorkerPayroll() {
           </div>
           <div className="text-xs text-gray-500">
             {latest
-              ? `${fmtDate(latest.periodStart)} – ${fmtDate(latest.periodEnd)}`
+              ? `${fmtDate(latest.payPeriodStart)} – ${fmtDate(latest.payPeriodEnd)}`
               : "no data"}
           </div>
         </div>
@@ -158,6 +210,11 @@ export default function WorkerPayroll() {
               <div className="p-12 text-center text-gray-400">
                 <FileText size={40} className="mx-auto mb-3 opacity-30" />
                 No pay stubs yet.
+                {ytdHoursFromAttendance > 0 && (
+                  <p className="text-sm text-gray-500 mt-2">
+                    Attendance recorded: {ytdHoursFromAttendance.toFixed(1)} hrs. Pay stubs appear after payroll generation.
+                  </p>
+                )}
               </div>
             ) : (
               <div
@@ -172,7 +229,7 @@ export default function WorkerPayroll() {
                     <div className="flex items-start justify-between mb-3">
                       <div>
                         <h3 className="font-medium mb-1">
-                          {fmtDate(s.periodStart)} – {fmtDate(s.periodEnd)}
+                          {fmtDate(s.payPeriodStart)} – {fmtDate(s.payPeriodEnd)}
                         </h3>
                         <p className="text-sm text-gray-600">
                           {(Number(s.totalHours) || 0).toFixed(1)} hours worked
@@ -246,7 +303,7 @@ export default function WorkerPayroll() {
                 <span className="text-sm text-gray-600">Period</span>
                 <span className="text-sm font-medium">
                   {latest
-                    ? `${fmtDate(latest.periodStart)} – ${fmtDate(latest.periodEnd)}`
+                    ? `${fmtDate(latest.payPeriodStart)} – ${fmtDate(latest.payPeriodEnd)}`
                     : "—"}
                 </span>
               </div>
@@ -333,7 +390,8 @@ export default function WorkerPayroll() {
             <h2 className="text-lg font-semibold mb-4">Actions</h2>
             <div className="space-y-3">
               <button
-                onClick={() => alert("Download functionality coming soon.")}
+                onClick={downloadAllStubsCsv}
+                disabled={stubs.length === 0}
                 className="w-full flex items-center justify-center gap-2 text-white px-4 py-3 rounded-xl text-sm font-medium hover:opacity-90"
                 style={{ backgroundColor: "#00523E" }}
               >

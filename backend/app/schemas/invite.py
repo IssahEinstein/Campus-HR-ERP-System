@@ -40,3 +40,7 @@ class AcceptInviteRequest(BaseModel):
 
 class DepartmentCreate(BaseModel):
     name: str
+
+
+class DepartmentUpdate(BaseModel):
+    name: str

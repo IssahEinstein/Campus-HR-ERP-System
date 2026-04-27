@@ -7,12 +7,31 @@ import ShiftDetailsModal from "../../components/modals/ShiftDetailsModal";
 
 const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
+const formatTime12 = (value) => {
+  const text = String(value ?? "").trim().replace(/\s+/g, " ").toUpperCase();
+  const match = text.match(/^(\d{1,2}):(\d{2})(?::\d{2})?(?:\s*(AM|PM))?$/);
+  if (!match) return text;
+
+  let hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  const meridiem = match[3] ?? null;
+  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return text;
+
+  if (meridiem) {
+    if (meridiem === "AM") hours = hours % 12;
+    else hours = (hours % 12) + 12;
+  }
+
+  const suffix = hours >= 12 ? "PM" : "AM";
+  const hours12 = ((hours + 11) % 12) + 1;
+  return `${hours12}:${String(minutes).padStart(2, "0")} ${suffix}`;
+};
+
 export default function WorkerSchedule() {
   const [assignments, setAssignments] = useState([]);
   const [availability, setAvailability] = useState([]);
   const [selected, setSelected] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [attendanceMap, setAttendanceMap] = useState({});
 
   useEffect(() => {
     Promise.all([shiftsApi.myAssignments(), availabilityApi.myAvailability()])
@@ -23,6 +42,33 @@ export default function WorkerSchedule() {
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
+
+  const applyAttendanceRecord = (record) => {
+    if (!selected || !record) {
+      return;
+    }
+
+    const assignmentId = selected.id;
+    setAssignments((prev) =>
+      prev.map((a) =>
+        a.id === assignmentId
+          ? {
+              ...a,
+              checkInRecord: record,
+            }
+          : a,
+      ),
+    );
+
+    setSelected((prev) =>
+      prev && prev.id === assignmentId
+        ? {
+            ...prev,
+            checkInRecord: record,
+          }
+        : prev,
+    );
+  };
 
   const now = new Date();
 
@@ -197,7 +243,7 @@ export default function WorkerSchedule() {
                   <div className="text-xs mb-1">{day.dayName}</div>
                   <div className="text-lg font-medium mb-1">{day.dateNum}</div>
                   <div className="text-xs">
-                    {day.hours > 0 ? `${day.hours}h` : "—"}
+                    {day.hours > 0 ? `${day.hours.toFixed(1)}h` : "—"}
                   </div>
                 </div>
               ))}
@@ -207,7 +253,7 @@ export default function WorkerSchedule() {
               style={{ borderColor: "rgba(0,82,62,0.09)" }}
             >
               <span className="text-gray-600">Total this week</span>
-              <span className="font-medium">{totalWeekHrs} hours</span>
+              <span className="font-medium">{totalWeekHrs.toFixed(1)} hours</span>
             </div>
           </div>
 
@@ -238,7 +284,11 @@ export default function WorkerSchedule() {
                 style={{ borderColor: "rgba(0,82,62,0.07)" }}
               >
                 {past.slice(0, 5).map((a) => (
-                  <div key={a.id} className="p-6">
+                  <div
+                    key={a.id}
+                    className="p-6 hover:bg-white/40 transition-colors cursor-pointer"
+                    onClick={() => setSelected(a)}
+                  >
                     <div className="flex items-start justify-between">
                       <div>
                         <h3 className="font-medium text-gray-700">
@@ -252,6 +302,18 @@ export default function WorkerSchedule() {
                       <span className="px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-500">
                         {a.status.toLowerCase()}
                       </span>
+                    </div>
+                    <div className="mt-3 text-sm text-gray-600">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelected(a);
+                        }}
+                        className="hover:underline"
+                        style={{ color: "#00523E" }}
+                      >
+                        View Details →
+                      </button>
                     </div>
                   </div>
                 ))}
@@ -311,7 +373,7 @@ export default function WorkerSchedule() {
                     >
                       <span>{DAY_NAMES[av.dayOfWeek]}</span>
                       <span>
-                        {av.startTime} – {av.endTime}
+                        {formatTime12(av.startTime)} – {formatTime12(av.endTime)}
                       </span>
                     </div>
                   ))}
@@ -414,9 +476,8 @@ export default function WorkerSchedule() {
         <ShiftDetailsModal
           assignment={selected}
           onClose={() => setSelected(null)}
-          onCheckedIn={(record) =>
-            setAttendanceMap((m) => ({ ...m, [selected.id]: record }))
-          }
+          onCheckedIn={applyAttendanceRecord}
+          onCheckedOut={applyAttendanceRecord}
         />
       )}
     </div>

@@ -33,6 +33,21 @@ def _format_smtp_message(message: bytes | str | None) -> str:
     return str(message)
 
 
+def _smtp_provider_hint(message: str) -> str:
+    lower = message.lower()
+    sender_problem = "sender" in lower and (
+        "verify" in lower
+        or "authorized" in lower
+        or "not allowed" in lower
+        or "not permitted" in lower
+    )
+    if sender_problem:
+        return (
+            f"{message}. Check SMTP_FROM is a verified sender/domain in your SMTP provider settings."
+        )
+    return message
+
+
 def _extract_recipients_refused_error(to: str, exc: smtplib.SMTPRecipientsRefused) -> EmailDeliveryError:
     recipient = to
     smtp_code: int | None = None
@@ -85,9 +100,19 @@ async def send_invite_email(to: str, name: str, role: str, invite_link: str) -> 
     """
 
     if not settings.SMTP_FROM or not settings.SMTP_USER or not settings.SMTP_PASSWORD:
-        # Email not configured — print the link so it's visible in dev logs
-        print(f"[DEV] Invite link for {name} ({to}): {invite_link}")
-        return
+        is_local_frontend = settings.FRONTEND_URL.startswith("http://localhost") or settings.FRONTEND_URL.startswith("http://127.0.0.1")
+        if is_local_frontend:
+            # Local dev fallback: keep link visible when SMTP is intentionally unset.
+            print(f"[DEV] Invite link for {name} ({to}): {invite_link}")
+            return
+
+        raise EmailDeliveryError(
+            recipient=to,
+            reason="SMTP is not fully configured (SMTP_FROM/SMTP_USER/SMTP_PASSWORD)",
+            transient=False,
+        )
+
+    smtp_timeout_seconds = max(1.0, float(settings.SMTP_TIMEOUT_SECONDS))
 
     def _send_once() -> None:
         msg = MIMEMultipart("alternative")
@@ -109,7 +134,7 @@ async def send_invite_email(to: str, name: str, role: str, invite_link: str) -> 
         )
 
         try:
-            with smtp_cls(settings.SMTP_HOST, settings.SMTP_PORT, timeout=30) as smtp:
+            with smtp_cls(settings.SMTP_HOST, settings.SMTP_PORT, timeout=smtp_timeout_seconds) as smtp:
                 if settings.SMTP_DEBUG:
                     smtp.set_debuglevel(1)
                 smtp.ehlo()
@@ -123,7 +148,7 @@ async def send_invite_email(to: str, name: str, role: str, invite_link: str) -> 
         except smtplib.SMTPRecipientsRefused as exc:
             raise _extract_recipients_refused_error(to, exc) from exc
         except smtplib.SMTPResponseException as exc:
-            smtp_message = _format_smtp_message(exc.smtp_error)
+            smtp_message = _smtp_provider_hint(_format_smtp_message(exc.smtp_error))
             raise EmailDeliveryError(
                 recipient=to,
                 reason=f"SMTP rejected message: {smtp_message}",
@@ -150,8 +175,32 @@ async def send_invite_email(to: str, name: str, role: str, invite_link: str) -> 
 
     for attempt in range(1, retries + 2):
         try:
-            await asyncio.to_thread(_send_once)
+            await asyncio.wait_for(
+                asyncio.to_thread(_send_once),
+                timeout=smtp_timeout_seconds + 2.0,
+            )
             return
+        except asyncio.TimeoutError as exc:
+            timed_out_error = EmailDeliveryError(
+                recipient=to,
+                reason=(
+                    "SMTP operation timed out after "
+                    f"{smtp_timeout_seconds:.1f}s"
+                ),
+                transient=True,
+            )
+            has_next_attempt = attempt <= retries
+            logger.warning(
+                "Invite email attempt %s timed out for to=%s timeout=%ss",
+                attempt,
+                to,
+                smtp_timeout_seconds,
+            )
+
+            if not has_next_attempt:
+                raise timed_out_error from exc
+
+            await asyncio.sleep(delay_seconds * attempt)
         except EmailDeliveryError as exc:
             has_next_attempt = attempt <= retries
             logger.warning(

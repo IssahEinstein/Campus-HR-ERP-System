@@ -23,18 +23,26 @@ export default function SupervisorDashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([
+    Promise.allSettled([
       supervisorsApi.myWorkers(),
       timeoffApi.pendingTimeOff(),
       shiftswapApi.pendingSwaps(),
       shiftsApi.listShifts(),
     ])
-      .then(([w, to, sw, sh]) => {
-        setWorkers(w);
-        setPending({ timeoff: to, swaps: sw });
-        setShifts(sh);
+      .then(([workersResult, timeOffResult, swapsResult, shiftsResult]) => {
+        setWorkers(
+          workersResult.status === "fulfilled" ? workersResult.value : [],
+        );
+        setPending({
+          timeoff: timeOffResult.status === "fulfilled" ? timeOffResult.value : [],
+          swaps: swapsResult.status === "fulfilled" ? swapsResult.value : [],
+        });
+        setShifts(shiftsResult.status === "fulfilled" ? shiftsResult.value : []);
+
+        [workersResult, timeOffResult, swapsResult, shiftsResult]
+          .filter((result) => result.status === "rejected")
+          .forEach((result) => console.error(result.reason));
       })
-      .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
 
@@ -269,6 +277,9 @@ export default function SupervisorDashboard() {
                   >
                     <div>
                       <div className="font-medium text-sm">{s.title}</div>
+                      {s.assignedWorkerName && (
+                        <div className="text-xs font-medium" style={{ color: "#00523E" }}>{s.assignedWorkerName}</div>
+                      )}
                       <div className="text-xs text-gray-500">
                         {fmt(s.startTime)} · {fmtT(s.startTime)} –{" "}
                         {fmtT(s.endTime)}

@@ -15,6 +15,12 @@ export const listDepartments = () =>
 export const createDepartment = (name) =>
   client.post("/admin/departments", { name }).then((r) => r.data);
 
+export const renameDepartment = (departmentId, name) =>
+  client.patch(`/admin/departments/${departmentId}`, { name }).then((r) => r.data);
+
+export const deleteDepartment = (departmentId) =>
+  client.delete(`/admin/departments/${departmentId}`).then((r) => r.data);
+
 export const inviteSupervisor = (body) =>
   client.post("/admin/invite-supervisor", body).then((r) => r.data);
 
@@ -29,3 +35,9 @@ export const resendAdminInvite = (adminProfileId) =>
 
 export const deleteSupervisor = (supervisorId) =>
   client.delete(`/admin/supervisors/${supervisorId}`).then((r) => r.data);
+
+export const getSemesterSettings = () =>
+  client.get("/admin/semester-settings").then((r) => r.data);
+
+export const updateSemesterSettings = (body) =>
+  client.put("/admin/semester-settings", body).then((r) => r.data);

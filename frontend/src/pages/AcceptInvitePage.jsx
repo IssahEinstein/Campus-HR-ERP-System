@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import * as authApi from "../api/auth";
+import PasswordInput from "../components/PasswordInput";
 
 export default function AcceptInvitePage() {
   const [searchParams] = useSearchParams();
@@ -24,6 +25,15 @@ export default function AcceptInvitePage() {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    const submittedPassword = String(formData.get("password") ?? "");
+    const submittedConfirmPassword = String(
+      formData.get("confirmPassword") ?? "",
+    );
+
+    setPassword(submittedPassword);
+    setConfirmPassword(submittedConfirmPassword);
+
     setError("");
     setSuccess("");
 
@@ -32,12 +42,12 @@ export default function AcceptInvitePage() {
       return;
     }
 
-    if (password.length < 8) {
+    if (submittedPassword.length < 8) {
       setError("Password must be at least 8 characters long.");
       return;
     }
 
-    if (password !== confirmPassword) {
+    if (submittedPassword !== submittedConfirmPassword) {
       setError("Passwords do not match.");
       return;
     }
@@ -46,11 +56,14 @@ export default function AcceptInvitePage() {
     try {
       let response;
       if (type === "admin") {
-        response = await authApi.acceptAdminInvite(token, password);
+        response = await authApi.acceptAdminInvite(token, submittedPassword);
       } else if (type === "supervisor") {
-        response = await authApi.acceptSupervisorInvite(token, password);
+        response = await authApi.acceptSupervisorInvite(
+          token,
+          submittedPassword,
+        );
       } else {
-        response = await authApi.acceptWorkerInvite(token, password);
+        response = await authApi.acceptWorkerInvite(token, submittedPassword);
       }
       setSuccess(response?.message ?? "Password set successfully. You can now log in.");
       setPassword("");
@@ -93,8 +106,8 @@ export default function AcceptInvitePage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">New Password</label>
-              <input
-                type="password"
+              <PasswordInput
+                name="password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
                 autoComplete="new-password"
@@ -106,8 +119,8 @@ export default function AcceptInvitePage() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
-              <input
-                type="password"
+              <PasswordInput
+                name="confirmPassword"
                 value={confirmPassword}
                 onChange={(event) => setConfirmPassword(event.target.value)}
                 autoComplete="new-password"

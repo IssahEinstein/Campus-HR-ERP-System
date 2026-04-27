@@ -2,13 +2,13 @@ import { useEffect, useState } from "react";
 import * as availabilityApi from "../../api/availability";
 
 const DAYS = [
-  { short: "Mon", full: "Monday", idx: 1 },
-  { short: "Tue", full: "Tuesday", idx: 2 },
-  { short: "Wed", full: "Wednesday", idx: 3 },
-  { short: "Thu", full: "Thursday", idx: 4 },
-  { short: "Fri", full: "Friday", idx: 5 },
-  { short: "Sat", full: "Saturday", idx: 6 },
-  { short: "Sun", full: "Sunday", idx: 0 },
+  { short: "Mon", full: "Monday", idx: 0 },
+  { short: "Tue", full: "Tuesday", idx: 1 },
+  { short: "Wed", full: "Wednesday", idx: 2 },
+  { short: "Thu", full: "Thursday", idx: 3 },
+  { short: "Fri", full: "Friday", idx: 4 },
+  { short: "Sat", full: "Saturday", idx: 5 },
+  { short: "Sun", full: "Sunday", idx: 6 },
 ];
 
 const defaultSlot = () => ({

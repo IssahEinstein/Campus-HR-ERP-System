@@ -221,8 +221,8 @@ async def get_profile(current_user) -> dict:
         "profile_id": _extract_profile_id(user),
         "first_name": user.firstName,
         "last_name": user.lastName,
-        "bio": user.bio,
-        "avatar_url": user.avatarUrl,
+        "bio": getattr(user, "bio", None),
+        "avatar_url": getattr(user, "avatarUrl", None),
     }
 
 
@@ -279,7 +279,7 @@ async def update_avatar(current_user, filename: str, content: bytes, content_typ
     avatar_url = f"/uploads/avatars/{avatar_filename}"
 
     existing_user = await db.user.find_unique(where={"id": current_user.user_id})
-    old_avatar_url = existing_user.avatarUrl if existing_user else None
+    old_avatar_url = getattr(existing_user, "avatarUrl", None) if existing_user else None
 
     await db.user.update(
         where={"id": current_user.user_id},
@@ -296,7 +296,7 @@ async def remove_avatar(current_user) -> dict:
     if existing_user is None:
         raise SessionRevoked()
 
-    old_avatar_url = existing_user.avatarUrl
+    old_avatar_url = getattr(existing_user, "avatarUrl", None)
 
     await db.user.update(
         where={"id": current_user.user_id},

@@ -12,5 +12,11 @@ export const mySwaps = () =>
 export const pendingSwaps = () =>
   client.get("/shiftswap/pending").then((r) => r.data);
 
-export const reviewSwap = (id, status, notes) =>
-  client.post(`/shiftswap/${id}/review`, { status, approval_notes: notes }).then((r) => r.data);
+export const reviewSwap = (id, status, notes, applyPermanently = false) =>
+  client
+    .post(`/shiftswap/${id}/review`, {
+      status,
+      approval_notes: notes,
+      apply_permanently: applyPermanently,
+    })
+    .then((r) => r.data);

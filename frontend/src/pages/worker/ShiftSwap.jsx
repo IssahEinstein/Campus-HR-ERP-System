@@ -14,6 +14,7 @@ export default function ShiftSwap() {
     target_worker_id: "",
     to_assignment_id: "",
     reason: "",
+    preferred_permanent: false,
   });
 
   useEffect(() => {
@@ -31,8 +32,13 @@ export default function ShiftSwap() {
       .finally(() => setLoading(false));
   }, []);
 
-  const handleChange = (e) =>
-    setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
+  const handleChange = (e) => {
+    const { name, type, value, checked } = e.target;
+    setForm((f) => ({
+      ...f,
+      [name]: type === "checkbox" ? checked : value,
+    }));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -52,6 +58,7 @@ export default function ShiftSwap() {
         target_worker_id: form.target_worker_id,
         to_assignment_id: form.to_assignment_id || undefined,
         reason: form.reason || undefined,
+        preferred_permanent: form.preferred_permanent,
       });
       navigate("/worker/requests");
     } catch (err) {
@@ -195,6 +202,22 @@ export default function ShiftSwap() {
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 resize-none"
             />
           </div>
+
+          <label className="flex items-start gap-2 text-sm text-gray-700">
+            <input
+              type="checkbox"
+              name="preferred_permanent"
+              checked={form.preferred_permanent}
+              onChange={handleChange}
+              className="mt-0.5"
+            />
+            <span>
+              Request permanent recurring change
+              <span className="block text-xs text-gray-500">
+                If approved, this asks the supervisor to apply the swap to future recurring shifts instead of one-time only.
+              </span>
+            </span>
+          </label>
 
           {error && (
             <div className="bg-red-50 text-red-600 text-sm p-3 rounded-lg">

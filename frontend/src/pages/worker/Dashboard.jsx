@@ -17,13 +17,23 @@ import {
 import { useAuth } from "../../context/AuthContext";
 import * as shiftsApi from "../../api/shifts";
 import * as payrollApi from "../../api/payroll";
+import * as attendanceApi from "../../api/attendance";
 import * as timeoffApi from "../../api/timeoff";
 import * as feedbackApi from "../../api/feedback";
+
+const API_ORIGIN = import.meta.env.VITE_API_URL || "http://localhost:8000";
+
+function resolveProfileImageUrl(value) {
+  if (!value) return "";
+  if (value.startsWith("http://") || value.startsWith("https://")) return value;
+  return `${API_ORIGIN}${value.startsWith("/") ? "" : "/"}${value}`;
+}
 
 export default function WorkerDashboard() {
   const { user } = useAuth();
   const [assignments, setAssignments] = useState([]);
   const [payStubs, setPayStubs] = useState([]);
+  const [attendance, setAttendance] = useState([]);
   const [requests, setRequests] = useState([]);
   const [feedbackItems, setFeedbackItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -32,12 +42,14 @@ export default function WorkerDashboard() {
     Promise.all([
       shiftsApi.myAssignments(),
       payrollApi.myPayStubs(),
+      attendanceApi.myAttendance(),
       timeoffApi.myTimeOff(),
       feedbackApi.myFeedback().catch(() => []),
     ])
-      .then(([a, p, r, f]) => {
+      .then(([a, p, attendanceData, r, f]) => {
         setAssignments(a);
-        setPayStubs(p);
+        setPayStubs(Array.isArray(p) ? p : []);
+        setAttendance(Array.isArray(attendanceData) ? attendanceData : []);
         setRequests(r);
         setFeedbackItems(f);
       })
@@ -74,6 +86,19 @@ export default function WorkerDashboard() {
   const nextShift = upcoming[0]?.shift;
   const pendingReqs = requests.filter((r) => r.status === "PENDING").length;
   const approvedReqs = requests.filter((r) => r.status === "APPROVED").length;
+  const profileImageUrl = resolveProfileImageUrl(user?.avatar_url);
+
+  const ytdHoursFromStubs = payStubs.reduce(
+    (sum, s) => sum + (Number(s.totalHours) || 0),
+    0,
+  );
+  const ytdHoursFromAttendance = attendance.reduce(
+    (sum, r) => sum + (Number(r.hoursWorked) || 0),
+    0,
+  );
+  const ytdHours = ytdHoursFromStubs > 0 ? ytdHoursFromStubs : ytdHoursFromAttendance;
+  const ytdNet = payStubs.reduce((sum, s) => sum + (Number(s.netPay) || 0), 0);
+  const currency = (n) => `$${(Number(n) || 0).toFixed(2)}`;
 
   const fmt = (iso) =>
     new Date(iso).toLocaleTimeString([], {
@@ -121,7 +146,7 @@ export default function WorkerDashboard() {
                 label: "This Week",
                 value: (
                   <>
-                    {thisWeekHrs}
+                    {thisWeekHrs.toFixed(1)}
                     <span className="text-lg text-gray-500"> hrs</span>
                   </>
                 ),
@@ -145,7 +170,7 @@ export default function WorkerDashboard() {
                 label: "This Month",
                 value: (
                   <>
-                    {thisMonthHrs}
+                    {thisMonthHrs.toFixed(1)}
                     <span className="text-lg text-gray-500"> hrs</span>
                   </>
                 ),
@@ -188,6 +213,39 @@ export default function WorkerDashboard() {
                 <div className="text-xs text-gray-400">{sub}</div>
               </div>
             ))}
+          </div>
+
+          {/* Year to Date Summary */}
+          <div
+            className="rounded-2xl p-6"
+            style={{
+              background:
+                "linear-gradient(160deg, rgba(255,255,255,0.78) 0%, rgba(242,250,245,0.88) 100%)",
+              backdropFilter: "blur(18px)",
+              WebkitBackdropFilter: "blur(18px)",
+              border: "1px solid rgba(0,82,62,0.11)",
+              boxShadow:
+                "0 8px 40px rgba(0,82,62,0.09), inset 0 1px 0 rgba(255,255,255,0.95)",
+            }}
+          >
+            <h3 className="text-sm font-medium text-gray-600 mb-4">
+              {now.getFullYear()} Year to Date
+            </h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-xs text-gray-500 mb-1">Total Hours</p>
+                <p className="text-2xl font-semibold text-gray-900">
+                  {ytdHours.toFixed(1)}
+                  <span className="text-lg text-gray-500"> hrs</span>
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 mb-1">Net Earnings</p>
+                <p className="text-2xl font-semibold text-gray-900">
+                  {currency(ytdNet)}
+                </p>
+              </div>
+            </div>
           </div>
 
           {/* Quick Overview */}
@@ -387,10 +445,10 @@ export default function WorkerDashboard() {
                     "linear-gradient(135deg, #00523E 0%, #00795c 100%)",
                 }}
               >
-                {user?.avatar_url ? (
+                {profileImageUrl ? (
                   <img
-                    src={user.avatar_url}
-                    alt="avatar"
+                    src={profileImageUrl}
+                    alt="Profile picture"
                     className="w-full h-full rounded-full object-cover"
                   />
                 ) : (

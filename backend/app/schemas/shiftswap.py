@@ -18,11 +18,13 @@ class ShiftSwapCreate(BaseModel):
     from_assignment_id: str
     to_assignment_id: Optional[str] = None
     reason: Optional[str] = None
+    preferred_permanent: bool = False
 
 
 class ShiftSwapReview(BaseModel):
     status: str          # "APPROVED" or "REJECTED"
     approval_notes: Optional[str] = None
+    apply_permanently: bool = False
 
 
 class ShiftSwapResponse(BaseModel):
@@ -41,4 +43,5 @@ class ShiftSwapResponse(BaseModel):
     status: RequestStatus
     reason: Optional[str] = None
     approval_notes: Optional[str] = None
+    preferred_permanent: bool = False
     created_at: datetime

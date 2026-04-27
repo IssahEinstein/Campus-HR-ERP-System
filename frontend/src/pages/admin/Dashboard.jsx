@@ -34,9 +34,28 @@ export default function AdminDashboard() {
   const [resendingSupervisorId, setResendingSupervisorId] = useState("");
   const [resendingAdminId, setResendingAdminId] = useState("");
   const [deletingSupervisorId, setDeletingSupervisorId] = useState("");
+  const [editingDepartmentId, setEditingDepartmentId] = useState("");
+  const [editingDepartmentName, setEditingDepartmentName] = useState("");
+  const [renamingDepartmentId, setRenamingDepartmentId] = useState("");
+  const [deletingDepartmentId, setDeletingDepartmentId] = useState("");
+  const [semesterStartDate, setSemesterStartDate] = useState("");
+  const [semesterEndDate, setSemesterEndDate] = useState("");
+  const [savingSemester, setSavingSemester] = useState(false);
   const [adminQuery, setAdminQuery] = useState("");
   const [adminStatusFilter, setAdminStatusFilter] = useState("all");
   const [adminSort, setAdminSort] = useState("newest");
+
+  const applySemesterSettings = (semester) => {
+    if (!semester) {
+      setSemesterStartDate("");
+      setSemesterEndDate("");
+      return;
+    }
+    const start = semester.semesterStartDate ?? semester.semester_start_date;
+    const end = semester.semesterEndDate ?? semester.semester_end_date;
+    setSemesterStartDate(start ? String(start).slice(0, 10) : "");
+    setSemesterEndDate(end ? String(end).slice(0, 10) : "");
+  };
   const [toasts, setToasts] = useState([]);
 
   const pushToast = (text, type = "success") => {
@@ -50,16 +69,48 @@ export default function AdminDashboard() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [a, s, w, d] = await Promise.all([
+      const [adminsResult, supervisorsResult, workersResult, departmentsResult] =
+        await Promise.allSettled([
         adminApi.listAdmins(),
         adminApi.listSupervisors(),
         adminApi.listAllWorkers(),
         adminApi.listDepartments(),
       ]);
-      setAdmins(a);
-      setSupervisors(s);
-      setWorkers(w);
-      setDepartments(d);
+
+      if (adminsResult.status === "fulfilled") setAdmins(adminsResult.value);
+      else setAdmins([]);
+
+      if (supervisorsResult.status === "fulfilled")
+        setSupervisors(supervisorsResult.value);
+      else setSupervisors([]);
+
+      if (workersResult.status === "fulfilled") setWorkers(workersResult.value);
+      else setWorkers([]);
+
+      if (departmentsResult.status === "fulfilled")
+        setDepartments(departmentsResult.value);
+      else setDepartments([]);
+
+      const primaryFailures = [
+        adminsResult,
+        supervisorsResult,
+        workersResult,
+        departmentsResult,
+      ].filter((result) => result.status === "rejected");
+      if (primaryFailures.length > 0) {
+        const firstError = primaryFailures[0].reason;
+        pushToast(
+          firstError?.response?.data?.detail ?? "Some admin data failed to load.",
+          "error",
+        );
+      }
+
+      try {
+        const semester = await adminApi.getSemesterSettings();
+        applySemesterSettings(semester);
+      } catch {
+        applySemesterSettings(null);
+      }
     } catch (e) {
       pushToast(
         e.response?.data?.detail ?? "Failed to load admin data.",
@@ -226,6 +277,82 @@ export default function AdminDashboard() {
       );
     } finally {
       setDeletingSupervisorId("");
+    }
+  };
+
+  const startDepartmentRename = (department) => {
+    setEditingDepartmentId(department.id);
+    setEditingDepartmentName(department.name);
+  };
+
+  const cancelDepartmentRename = () => {
+    setEditingDepartmentId("");
+    setEditingDepartmentName("");
+  };
+
+  const renameDepartment = async (department) => {
+    const normalizedName = editingDepartmentName.trim();
+    if (!normalizedName || normalizedName === department.name) return;
+
+    setRenamingDepartmentId(department.id);
+    try {
+      await adminApi.renameDepartment(department.id, normalizedName);
+      pushToast("Department renamed.");
+      cancelDepartmentRename();
+      await load();
+    } catch (e2) {
+      pushToast(
+        e2.response?.data?.detail ?? "Failed to rename department.",
+        "error",
+      );
+    } finally {
+      setRenamingDepartmentId("");
+    }
+  };
+
+  const removeDepartment = async (department) => {
+    const confirmed = window.confirm(
+      `Delete department ${department.name}? This is allowed only when no supervisors or workers are assigned to it.`,
+    );
+    if (!confirmed) return;
+
+    setDeletingDepartmentId(department.id);
+    try {
+      const res = await adminApi.deleteDepartment(department.id);
+      pushToast(res?.message ?? "Department deleted.");
+      await load();
+    } catch (e2) {
+      pushToast(
+        e2.response?.data?.detail ?? "Failed to delete department.",
+        "error",
+      );
+    } finally {
+      setDeletingDepartmentId("");
+    }
+  };
+
+  const saveSemesterSettings = async (event) => {
+    event.preventDefault();
+    if (!semesterStartDate || !semesterEndDate) {
+      pushToast("Set both semester start and end dates.", "error");
+      return;
+    }
+
+    setSavingSemester(true);
+    try {
+      const semester = await adminApi.updateSemesterSettings({
+        semester_start_date: new Date(`${semesterStartDate}T00:00:00`).toISOString(),
+        semester_end_date: new Date(`${semesterEndDate}T23:59:59`).toISOString(),
+      });
+      applySemesterSettings(semester);
+      pushToast("Semester dates saved.");
+    } catch (e2) {
+      pushToast(
+        e2.response?.data?.detail ?? "Failed to save semester dates.",
+        "error",
+      );
+    } finally {
+      setSavingSemester(false);
     }
   };
 
@@ -438,6 +565,53 @@ export default function AdminDashboard() {
             style={{ backgroundColor: "#00523E" }}
           >
             {savingDept ? "Creating..." : "Create"}
+          </button>
+        </form>
+
+        <form
+          onSubmit={saveSemesterSettings}
+          className="rounded-2xl p-6 space-y-4"
+          style={{
+            background:
+              "linear-gradient(160deg, rgba(255,255,255,0.78) 0%, rgba(242,250,245,0.88) 100%)",
+            backdropFilter: "blur(18px)",
+            WebkitBackdropFilter: "blur(18px)",
+            border: "1px solid rgba(0,82,62,0.11)",
+            boxShadow:
+              "0 8px 40px rgba(0,82,62,0.09), inset 0 1px 0 rgba(255,255,255,0.95)",
+          }}
+        >
+          <h2 className="text-base font-semibold text-gray-800">Semester Dates</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <input
+              type="date"
+              value={semesterStartDate}
+              onChange={(e) => setSemesterStartDate(e.target.value)}
+              className="rounded-xl px-3 py-2 text-sm"
+              style={{
+                border: "1px solid rgba(0,82,62,0.18)",
+                background: "rgba(255,255,255,0.7)",
+              }}
+              required
+            />
+            <input
+              type="date"
+              value={semesterEndDate}
+              onChange={(e) => setSemesterEndDate(e.target.value)}
+              className="rounded-xl px-3 py-2 text-sm"
+              style={{
+                border: "1px solid rgba(0,82,62,0.18)",
+                background: "rgba(255,255,255,0.7)",
+              }}
+              required
+            />
+          </div>
+          <button
+            disabled={savingSemester}
+            className="px-4 py-2 rounded-xl text-sm font-medium text-white hover:opacity-90 disabled:opacity-60"
+            style={{ backgroundColor: "#00523E" }}
+          >
+            {savingSemester ? "Saving..." : "Save Semester Dates"}
           </button>
         </form>
 
@@ -694,10 +868,58 @@ export default function AdminDashboard() {
                 key={d.id}
                 className="px-5 py-3 text-sm flex items-center justify-between hover:bg-white/40 transition-colors"
               >
-                <span className="text-gray-700">{d.name}</span>
-                <span className="text-xs text-gray-400">
-                  {d.id.slice(0, 8)}...
-                </span>
+                <div className="min-w-0">
+                  {editingDepartmentId === d.id ? (
+                    <input
+                      value={editingDepartmentName}
+                      onChange={(e) => setEditingDepartmentName(e.target.value)}
+                      className="w-full rounded-lg px-2 py-1 text-sm text-gray-700"
+                      style={{
+                        border: "1px solid rgba(0,82,62,0.18)",
+                        background: "rgba(255,255,255,0.85)",
+                      }}
+                      autoFocus
+                    />
+                  ) : (
+                    <div className="text-gray-700 truncate">{d.name}</div>
+                  )}
+                  <div className="text-xs text-gray-400">{d.id.slice(0, 8)}...</div>
+                </div>
+                <div className="flex items-center gap-2">
+                  {editingDepartmentId === d.id ? (
+                    <>
+                      <button
+                        onClick={() => renameDepartment(d)}
+                        disabled={renamingDepartmentId === d.id || deletingDepartmentId === d.id}
+                        className="text-xs px-2 py-1 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-60"
+                      >
+                        {renamingDepartmentId === d.id ? "Saving..." : "Save"}
+                      </button>
+                      <button
+                        onClick={cancelDepartmentRename}
+                        disabled={renamingDepartmentId === d.id}
+                        className="text-xs px-2 py-1 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-60"
+                      >
+                        Cancel
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={() => startDepartmentRename(d)}
+                      disabled={renamingDepartmentId === d.id || deletingDepartmentId === d.id}
+                      className="text-xs px-2 py-1 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-60"
+                    >
+                      Rename
+                    </button>
+                  )}
+                  <button
+                    onClick={() => removeDepartment(d)}
+                    disabled={deletingDepartmentId === d.id || renamingDepartmentId === d.id || editingDepartmentId === d.id}
+                    className="text-xs px-2 py-1 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 disabled:opacity-60"
+                  >
+                    {deletingDepartmentId === d.id ? "Deleting..." : "Delete"}
+                  </button>
+                </div>
               </div>
             ))}
             {departments.length === 0 && (

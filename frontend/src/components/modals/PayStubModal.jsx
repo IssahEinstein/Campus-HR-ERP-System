@@ -9,6 +9,47 @@ export default function PayStubModal({ stub, onClose }) {
   const dedTotal = gross - net;
   const fmtDate = (iso) => iso ? new Date(iso).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }) : "—";
 
+  const downloadStubCsv = () => {
+    const headers = [
+      "Pay Period Start",
+      "Pay Period End",
+      "Status",
+      "Total Hours",
+      "Hourly Rate",
+      "Gross Pay",
+      "Tax Withheld",
+      "Deductions",
+      "Net Pay",
+      "Created At",
+    ];
+    const row = [
+      stub.payPeriodStart,
+      stub.payPeriodEnd,
+      stub.status,
+      Number(stub.totalHours || 0).toFixed(2),
+      Number(stub.hourlyRate || 0).toFixed(2),
+      Number(stub.grossPay || 0).toFixed(2),
+      Number(stub.taxWithheld || 0).toFixed(2),
+      Number(stub.deductions || 0).toFixed(2),
+      Number(stub.netPay || 0).toFixed(2),
+      stub.createdAt,
+    ];
+
+    const csv = [headers, row]
+      .map((r) => r.map((v) => `"${String(v ?? "").replaceAll('"', '""')}"`).join(","))
+      .join("\n");
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `paystub-${String(stub.id || "record")}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
@@ -17,7 +58,7 @@ export default function PayStubModal({ stub, onClose }) {
           <div>
             <h2 className="text-xl font-bold text-gray-900">Pay Stub Details</h2>
             <p className="text-sm text-gray-600 mt-1">
-              {fmtDate(stub.periodStart)} – {fmtDate(stub.periodEnd)}
+              {fmtDate(stub.payPeriodStart)} – {fmtDate(stub.payPeriodEnd)}
             </p>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg">
@@ -91,12 +132,12 @@ export default function PayStubModal({ stub, onClose }) {
           {/* Action buttons */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <button
-              onClick={() => alert("PDF download would be triggered here")}
+              onClick={downloadStubCsv}
               className="flex items-center justify-center gap-2 text-white px-6 py-3 rounded-lg font-medium hover:opacity-90"
               style={{ backgroundColor: "#00523E" }}
             >
               <Download size={18} />
-              Download PDF
+              Download CSV
             </button>
             <button
               onClick={() => window.print()}

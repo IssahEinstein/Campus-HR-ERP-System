@@ -44,7 +44,10 @@ export function AuthProvider({ children }) {
 
   const refreshProfile = useCallback(async () => {
     const activeToken = localStorage.getItem("access_token");
-    if (!activeToken) return null;
+    if (!activeToken) {
+      setInitializing(false);
+      return null;
+    }
 
     const payload = decodeJwt(activeToken);
     try {
@@ -56,15 +59,16 @@ export function AuthProvider({ children }) {
       // If the token is expired / server unreachable, fall back to JWT payload
       setUser(payload);
       return payload;
+    } finally {
+      setInitializing(false);
     }
   }, [mergeUser]);
 
   useEffect(() => {
     if (!token) {
-      setInitializing(false);
       return;
     }
-    refreshProfile().finally(() => setInitializing(false));
+    refreshProfile();
   }, [token, refreshProfile]);
 
   const login = useCallback(

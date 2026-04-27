@@ -26,6 +26,7 @@ import SupervisorDashboard from "./pages/supervisor/Dashboard";
 import SupervisorTeam from "./pages/supervisor/Team";
 import SupervisorSchedule from "./pages/supervisor/Schedule";
 import SupervisorApprovals from "./pages/supervisor/Approvals";
+import SupervisorPayroll from "./pages/supervisor/Payroll";
 import WorkerProfile from "./pages/supervisor/WorkerProfile";
 
 import AdminDashboard from "./pages/admin/Dashboard";
@@ -102,6 +103,7 @@ export default function App() {
                 path="/supervisor/approvals"
                 element={<SupervisorApprovals />}
               />
+              <Route path="/supervisor/payroll" element={<SupervisorPayroll />} />
               <Route path="/supervisor/profile" element={<ProfileSettings />} />
             </Route>
           </Route>

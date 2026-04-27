@@ -23,9 +23,7 @@ export const changePassword = (body) =>
 export const uploadAvatar = (file) => {
   const form = new FormData();
   form.append("file", file);
-  return client.post("/auth/avatar", form, {
-    headers: { "Content-Type": "multipart/form-data" },
-  }).then((r) => r.data);
+  return client.post("/auth/avatar", form).then((r) => r.data);
 };
 
 export const removeAvatar = () =>

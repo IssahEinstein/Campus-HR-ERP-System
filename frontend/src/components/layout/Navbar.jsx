@@ -19,6 +19,7 @@ const NAV_LINKS = {
     { label: "Dashboard", to: "/supervisor/dashboard" },
     { label: "Team", to: "/supervisor/team" },
     { label: "Schedule", to: "/supervisor/schedule" },
+    { label: "Payroll", to: "/supervisor/payroll" },
     { label: "Approvals", to: "/supervisor/approvals" },
     { label: "Profile", to: "/supervisor/profile" },
   ],
@@ -328,7 +329,7 @@ export default function Navbar() {
                 {avatarUrl ? (
                   <img
                     src={avatarUrl}
-                    alt="Profile"
+                    alt="Profile picture"
                     className="w-8 h-8 rounded-full object-cover border border-gray-200"
                   />
                 ) : (

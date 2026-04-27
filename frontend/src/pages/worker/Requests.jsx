@@ -51,6 +51,13 @@ const STATUS_META = {
     notesBg: "bg-yellow-50 border-yellow-100",
     notesText: "text-yellow-800",
   },
+  REJECTED: {
+    label: "Denied",
+    className: "bg-red-50 text-red-700",
+    Icon: XCircle,
+    notesBg: "bg-red-50 border-red-100",
+    notesText: "text-red-800",
+  },
   DENIED: {
     label: "Denied",
     className: "bg-red-50 text-red-700",
@@ -91,7 +98,14 @@ export default function WorkerRequests() {
   );
 
   const filtered =
-    filter === "ALL" ? combined : combined.filter((r) => r.status === filter);
+    filter === "ALL"
+      ? combined
+      : combined.filter((r) => {
+          if (filter === "REJECTED") {
+            return r.status === "REJECTED" || r.status === "DENIED";
+          }
+          return r.status === filter;
+        });
 
   const handleCancel = async (req) => {
     if (!window.confirm("Cancel this request?")) return;
@@ -193,7 +207,7 @@ export default function WorkerRequests() {
 
       {/* Filter Buttons */}
       <div className="flex gap-2 mb-6 flex-wrap">
-        {["ALL", "PENDING", "APPROVED", "DENIED"].map((f) => (
+        {["ALL", "PENDING", "APPROVED", "REJECTED"].map((f) => (
           <button
             key={f}
             onClick={() => setFilter(f)}
@@ -313,6 +327,14 @@ export default function WorkerRequests() {
                           By:{" "}
                           <span className="text-gray-700">
                             {req.reviewedBy}
+                          </span>
+                        </span>
+                      )}
+                      {req._type === "SWAP" && (
+                        <span>
+                          Requested Mode:{" "}
+                          <span className="text-gray-700">
+                            {req.preferredPermanent ? "Permanent recurring" : "One-time"}
                           </span>
                         </span>
                       )}

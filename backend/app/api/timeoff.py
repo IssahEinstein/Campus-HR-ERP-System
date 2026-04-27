@@ -59,6 +59,17 @@ async def pending_requests(
     return [r for r in all_pending if r.workerId in dept_worker_ids]
 
 
+@router.get("/worker/{worker_id}", response_model=list[TimeOffResponse])
+async def requests_for_worker(
+    worker_id: str,
+    current_user: Annotated[CurrentUser, Depends(require_role("SUPERVISOR", "ADMIN"))],
+):
+    """Supervisor/Admin views all time-off requests for a specific worker."""
+    if current_user.role == "SUPERVISOR":
+        await ensure_supervisor_owns_worker(current_user.profile_id, worker_id)
+    return await timeoff_service.list_requests_for_worker(worker_id=worker_id)
+
+
 @router.post("/{request_id}/review", response_model=TimeOffResponse)
 async def review_request(
     request_id: str,

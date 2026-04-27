@@ -154,6 +154,26 @@ model Department {
   @@index([adminId])
 }
 
+model SemesterSetting {
+  key               String   @id @default("default")
+  semesterStartDate DateTime
+  semesterEndDate   DateTime
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model SupervisorLocation {
+  id           String     @id
+  supervisorId String
+  supervisor   Supervisor @relation(fields: [supervisorId], references: [id], onDelete: Cascade)
+  name         String
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@index([supervisorId])
+  @@unique([supervisorId, name])
+}
+
 /// Admin profile - represents a system-level administrator who can:
 /// - Create and manage departments
 /// - Create supervisor accounts
@@ -196,6 +216,7 @@ model Supervisor {
   approvedTimeOff  TimeOffRequest[]  @relation("TimeOffApprovedBy")
   approvedSwaps    ShiftSwapRequest[] @relation("SwapApprovedBy")
   feedbackGiven    Feedback[] @relation("SupervisorFeedback")
+  locations        SupervisorLocation[]
 
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
@@ -263,6 +284,8 @@ model Shift {
   endTime       DateTime
   status        ShiftStatus @default(SCHEDULED)
   expectedHours Float?
+  isRecurring   Boolean @default(false)
+  recurrenceGroupId String?
 
   assignments   ShiftAssignment[]
 
@@ -272,6 +295,7 @@ model Shift {
   @@index([supervisorId])
   @@index([startTime])
   @@index([status])
+  @@index([recurrenceGroupId])
 }
 
 model ShiftAssignment {
@@ -389,6 +413,7 @@ model ShiftSwapRequest {
 
   reason         String?
   approvalNotes  String?
+  preferredPermanent Boolean @default(false)
 
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt

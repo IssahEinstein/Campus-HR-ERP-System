@@ -29,5 +29,6 @@ class AttendanceResponse(BaseModel):
     checked_out_at: Optional[datetime] = None
     hours_worked: Optional[float] = None
     notes: Optional[str] = None
+    shift_title: Optional[str] = None
     created_at: datetime
     updated_at: datetime

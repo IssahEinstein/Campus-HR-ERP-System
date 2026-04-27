@@ -17,10 +17,13 @@ export default function SupervisorApprovals() {
   const [acting, setActing] = useState(null);
   const [denyNote, setDenyNote] = useState({});
   const [denyOpen, setDenyOpen] = useState(null);
+  const [permanentSwap, setPermanentSwap] = useState({});
+  const [errorMessage, setErrorMessage] = useState("");
   const navigate = useNavigate();
 
   const load = async () => {
     setLoading(true);
+    setErrorMessage("");
     try {
       const [to, sw] = await Promise.all([
         timeoffApi.pendingTimeOff(),
@@ -41,13 +44,23 @@ export default function SupervisorApprovals() {
 
   const approve = async (item) => {
     setActing({ id: item.id, action: "approve" });
+    setErrorMessage("");
     try {
       if (item._type === "TIMEOFF")
         await timeoffApi.reviewTimeOff(item.id, "APPROVED", "");
-      else await shiftswapApi.reviewSwap(item.id, "APPROVED", "");
+      else
+        await shiftswapApi.reviewSwap(
+          item.id,
+          "APPROVED",
+          "",
+          Boolean(permanentSwap[item.id]),
+        );
       await load();
     } catch (e) {
       console.error(e);
+      setErrorMessage(
+        e.response?.data?.detail ?? "Could not approve request. Please try again.",
+      );
     } finally {
       setActing(null);
     }
@@ -56,6 +69,7 @@ export default function SupervisorApprovals() {
   const deny = async (item) => {
     const notes = denyNote[item.id] ?? "";
     setActing({ id: item.id, action: "deny" });
+    setErrorMessage("");
     try {
       if (item._type === "TIMEOFF")
         await timeoffApi.reviewTimeOff(item.id, "REJECTED", notes);
@@ -64,6 +78,9 @@ export default function SupervisorApprovals() {
       await load();
     } catch (e) {
       console.error(e);
+      setErrorMessage(
+        e.response?.data?.detail ?? "Could not deny request. Please try again.",
+      );
     } finally {
       setActing(null);
     }
@@ -110,6 +127,12 @@ export default function SupervisorApprovals() {
         </h1>
         <p className="text-gray-600">Review and approve worker requests.</p>
       </div>
+
+      {errorMessage && (
+        <div className="mb-6 rounded-lg px-4 py-3 text-sm bg-red-50 text-red-700 border border-red-200">
+          {errorMessage}
+        </div>
+      )}
 
       {all.length === 0 ? (
         <div
@@ -192,10 +215,37 @@ export default function SupervisorApprovals() {
                             {item.reason}
                           </div>
                         )}
+                        {item._type === "SWAP" && (
+                          <div className="text-xs text-gray-500 mt-1">
+                            Requested mode:{" "}
+                            <span className="font-medium text-gray-700">
+                              {item.preferredPermanent
+                                ? "Permanent recurring"
+                                : "One-time"}
+                            </span>
+                          </div>
+                        )}
                       </div>
 
                       {!showDeny && (
                         <div className="flex gap-2 shrink-0">
+                          {item._type === "SWAP" && (
+                            <label className="flex items-center gap-2 text-xs text-gray-600 mr-2">
+                              <input
+                                type="checkbox"
+                                checked={
+                                  Boolean(permanentSwap[item.id])
+                                }
+                                onChange={(e) =>
+                                  setPermanentSwap((prev) => ({
+                                    ...prev,
+                                    [item.id]: e.target.checked,
+                                  }))
+                                }
+                              />
+                              Apply permanently for recurring shifts
+                            </label>
+                          )}
                           <button
                             onClick={() => approve(item)}
                             disabled={isActing}

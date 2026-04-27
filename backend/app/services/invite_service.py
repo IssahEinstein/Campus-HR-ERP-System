@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+import asyncio
 import logging
 
 from fastapi import HTTPException
@@ -19,6 +20,35 @@ _PLACEHOLDER = "INVITE_PENDING"
 def _aware(dt: datetime) -> datetime:
     """Ensure a datetime is timezone-aware (UTC)."""
     return dt.replace(tzinfo=timezone.utc) if dt.tzinfo is None else dt
+
+
+async def _send_invite_email_background(*, to: str, name: str, role: str, invite_link: str) -> None:
+    """Attempt email delivery in background so invite creation is not blocked by SMTP latency."""
+    try:
+        await send_invite_email(to=to, name=name, role=role, invite_link=invite_link)
+        logger.info("Invite email queued delivery accepted for to=%s role=%s", to, role)
+    except EmailDeliveryError as exc:
+        logger.warning(
+            "%s invite email failed for to=%s smtp_code=%s transient=%s reason=%s",
+            role,
+            exc.recipient,
+            exc.smtp_code,
+            exc.transient,
+            exc.reason,
+        )
+    except Exception as exc:  # noqa: BLE001
+        logger.exception("Failed to send %s invite email", role, exc_info=exc)
+
+
+def _queue_invite_email(*, to: str, name: str, role: str, invite_link: str) -> None:
+    asyncio.create_task(
+        _send_invite_email_background(
+            to=to,
+            name=name,
+            role=role,
+            invite_link=invite_link,
+        )
+    )
 
 
 async def invite_supervisor(data: InviteSupervisorRequest, admin_id: str) -> dict:
@@ -53,35 +83,16 @@ async def invite_supervisor(data: InviteSupervisorRequest, admin_id: str) -> dic
     token = await invite_repo.create_supervisor_invite(user.id)
     invite_link = f"{settings.FRONTEND_URL}/accept-invite?token={token}&type=supervisor"
 
-    try:
-        await send_invite_email(
-            to=recipient_email,
-            name=f"{data.first_name} {data.last_name}",
-            role="Supervisor",
-            invite_link=invite_link,
-        )
-        return {"message": "Supervisor invited successfully", "email": recipient_email}
-    except EmailDeliveryError as exc:
-        logger.warning(
-            "Supervisor invite email failed for to=%s smtp_code=%s transient=%s reason=%s",
-            exc.recipient,
-            exc.smtp_code,
-            exc.transient,
-            exc.reason,
-        )
-        return {
-            "message": (
-                "Supervisor account created, but invite email was rejected for "
-                f"{exc.recipient}: {exc.reason}"
-            ),
-            "email": recipient_email,
-        }
-    except Exception as exc:  # noqa: BLE001
-        logger.exception("Failed to send supervisor invite email", exc_info=exc)
-        return {
-            "message": "Supervisor account created, but invite email could not be sent. Check SMTP settings.",
-            "email": recipient_email,
-        }
+    _queue_invite_email(
+        to=recipient_email,
+        name=f"{data.first_name} {data.last_name}",
+        role="Supervisor",
+        invite_link=invite_link,
+    )
+    return {
+        "message": "Supervisor invited successfully. Email delivery is processing in the background.",
+        "email": recipient_email,
+    }
 
 
 async def invite_admin(data: InviteAdminRequest, inviter_admin_id: str) -> dict:
@@ -113,35 +124,16 @@ async def invite_admin(data: InviteAdminRequest, inviter_admin_id: str) -> dict:
     )
     invite_link = f"{settings.FRONTEND_URL}/accept-invite?token={token}&type=admin"
 
-    try:
-        await send_invite_email(
-            to=recipient_email,
-            name=f"{data.first_name} {data.last_name}",
-            role="Admin",
-            invite_link=invite_link,
-        )
-        return {"message": "Admin invited successfully", "email": recipient_email}
-    except EmailDeliveryError as exc:
-        logger.warning(
-            "Admin invite email failed for to=%s smtp_code=%s transient=%s reason=%s",
-            exc.recipient,
-            exc.smtp_code,
-            exc.transient,
-            exc.reason,
-        )
-        return {
-            "message": (
-                "Admin account created, but invite email was rejected for "
-                f"{exc.recipient}: {exc.reason}"
-            ),
-            "email": recipient_email,
-        }
-    except Exception as exc:  # noqa: BLE001
-        logger.exception("Failed to send admin invite email", exc_info=exc)
-        return {
-            "message": "Admin account created, but invite email could not be sent. Check SMTP settings.",
-            "email": recipient_email,
-        }
+    _queue_invite_email(
+        to=recipient_email,
+        name=f"{data.first_name} {data.last_name}",
+        role="Admin",
+        invite_link=invite_link,
+    )
+    return {
+        "message": "Admin invited successfully. Email delivery is processing in the background.",
+        "email": recipient_email,
+    }
 
 
 async def resend_supervisor_invite(supervisor_id: str, admin_id: str) -> dict:
@@ -161,35 +153,16 @@ async def resend_supervisor_invite(supervisor_id: str, admin_id: str) -> dict:
     recipient_email = supervisor.user.email
     full_name = f"{supervisor.user.firstName} {supervisor.user.lastName}".strip()
 
-    try:
-        await send_invite_email(
-            to=recipient_email,
-            name=full_name,
-            role="Supervisor",
-            invite_link=invite_link,
-        )
-        return {
-            "message": "Supervisor invite resent successfully",
-            "email": recipient_email,
-        }
-    except EmailDeliveryError as exc:
-        logger.warning(
-            "Resend supervisor invite failed for to=%s smtp_code=%s transient=%s reason=%s",
-            exc.recipient,
-            exc.smtp_code,
-            exc.transient,
-            exc.reason,
-        )
-        return {
-            "message": f"Invite resend failed for {exc.recipient}: {exc.reason}",
-            "email": recipient_email,
-        }
-    except Exception as exc:  # noqa: BLE001
-        logger.exception("Failed to resend supervisor invite email", exc_info=exc)
-        return {
-            "message": "Invite resend failed. Check SMTP settings.",
-            "email": recipient_email,
-        }
+    _queue_invite_email(
+        to=recipient_email,
+        name=full_name,
+        role="Supervisor",
+        invite_link=invite_link,
+    )
+    return {
+        "message": "Supervisor invite resent successfully. Email delivery is processing in the background.",
+        "email": recipient_email,
+    }
 
 
 async def resend_admin_invite(admin_profile_id: str, requester_admin_id: str) -> dict:
@@ -220,35 +193,16 @@ async def resend_admin_invite(admin_profile_id: str, requester_admin_id: str) ->
     recipient_email = invited_admin.user.email
     full_name = f"{invited_admin.user.firstName} {invited_admin.user.lastName}".strip()
 
-    try:
-        await send_invite_email(
-            to=recipient_email,
-            name=full_name,
-            role="Admin",
-            invite_link=invite_link,
-        )
-        return {
-            "message": "Admin invite resent successfully",
-            "email": recipient_email,
-        }
-    except EmailDeliveryError as exc:
-        logger.warning(
-            "Resend admin invite failed for to=%s smtp_code=%s transient=%s reason=%s",
-            exc.recipient,
-            exc.smtp_code,
-            exc.transient,
-            exc.reason,
-        )
-        return {
-            "message": f"Invite resend failed for {exc.recipient}: {exc.reason}",
-            "email": recipient_email,
-        }
-    except Exception as exc:  # noqa: BLE001
-        logger.exception("Failed to resend admin invite email", exc_info=exc)
-        return {
-            "message": "Invite resend failed. Check SMTP settings.",
-            "email": recipient_email,
-        }
+    _queue_invite_email(
+        to=recipient_email,
+        name=full_name,
+        role="Admin",
+        invite_link=invite_link,
+    )
+    return {
+        "message": "Admin invite resent successfully. Email delivery is processing in the background.",
+        "email": recipient_email,
+    }
 
 
 async def invite_worker(data: InviteWorkerRequest, supervisor_id: str) -> dict:
@@ -291,35 +245,16 @@ async def invite_worker(data: InviteWorkerRequest, supervisor_id: str) -> dict:
     token = await invite_repo.create_worker_invite(worker.id)
     invite_link = f"{settings.FRONTEND_URL}/accept-invite?token={token}&type=worker"
 
-    try:
-        await send_invite_email(
-            to=recipient_email,
-            name=f"{data.first_name} {data.last_name}",
-            role="Worker",
-            invite_link=invite_link,
-        )
-        return {"message": "Worker invited successfully", "email": recipient_email}
-    except EmailDeliveryError as exc:
-        logger.warning(
-            "Worker invite email failed for to=%s smtp_code=%s transient=%s reason=%s",
-            exc.recipient,
-            exc.smtp_code,
-            exc.transient,
-            exc.reason,
-        )
-        return {
-            "message": (
-                "Worker account created, but invite email was rejected for "
-                f"{exc.recipient}: {exc.reason}"
-            ),
-            "email": recipient_email,
-        }
-    except Exception as exc:  # noqa: BLE001
-        logger.exception("Failed to send worker invite email", exc_info=exc)
-        return {
-            "message": "Worker account created, but invite email could not be sent. Check SMTP settings.",
-            "email": recipient_email,
-        }
+    _queue_invite_email(
+        to=recipient_email,
+        name=f"{data.first_name} {data.last_name}",
+        role="Worker",
+        invite_link=invite_link,
+    )
+    return {
+        "message": "Worker invited successfully. Email delivery is processing in the background.",
+        "email": recipient_email,
+    }
 
 
 async def resend_worker_invite(worker_id: str, supervisor_id: str) -> dict:
@@ -346,35 +281,16 @@ async def resend_worker_invite(worker_id: str, supervisor_id: str) -> dict:
     recipient_email = worker.user.email
     full_name = f"{worker.user.firstName} {worker.user.lastName}".strip()
 
-    try:
-        await send_invite_email(
-            to=recipient_email,
-            name=full_name,
-            role="Worker",
-            invite_link=invite_link,
-        )
-        return {
-            "message": "Worker invite resent successfully",
-            "email": recipient_email,
-        }
-    except EmailDeliveryError as exc:
-        logger.warning(
-            "Resend worker invite failed for to=%s smtp_code=%s transient=%s reason=%s",
-            exc.recipient,
-            exc.smtp_code,
-            exc.transient,
-            exc.reason,
-        )
-        return {
-            "message": f"Invite resend failed for {exc.recipient}: {exc.reason}",
-            "email": recipient_email,
-        }
-    except Exception as exc:  # noqa: BLE001
-        logger.exception("Failed to resend worker invite email", exc_info=exc)
-        return {
-            "message": "Invite resend failed. Check SMTP settings.",
-            "email": recipient_email,
-        }
+    _queue_invite_email(
+        to=recipient_email,
+        name=full_name,
+        role="Worker",
+        invite_link=invite_link,
+    )
+    return {
+        "message": "Worker invite resent successfully. Email delivery is processing in the background.",
+        "email": recipient_email,
+    }
 
 
 async def delete_worker(worker_id: str, supervisor_id: str) -> dict:

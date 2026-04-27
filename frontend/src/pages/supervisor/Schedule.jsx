@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Plus, Calendar } from "lucide-react";
+import { useEffect, useState, useCallback } from "react";
+import { Plus, Calendar, CheckCircle } from "lucide-react";
 import * as shiftsApi from "../../api/shifts";
 import * as supervisorsApi from "../../api/supervisors";
 import CreateShiftModal from "../../components/modals/CreateShiftModal";
@@ -9,6 +9,7 @@ export default function SupervisorSchedule() {
   const [workers, setWorkers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
+  const [successMsg, setSuccessMsg] = useState("");
 
   const load = () =>
     Promise.all([shiftsApi.listShifts(), supervisorsApi.myWorkers()])
@@ -127,6 +128,9 @@ export default function SupervisorSchedule() {
                     <th className="p-4 text-left font-medium text-gray-500">
                       Location
                     </th>
+                    <th className="p-4 text-left font-medium text-gray-500">
+                      Worker
+                    </th>
                     <th className="p-4 text-center font-medium text-gray-500">
                       Status
                     </th>
@@ -149,6 +153,7 @@ export default function SupervisorSchedule() {
                         {fmtT(s.endTime)}
                       </td>
                       <td className="p-4 text-gray-500">{s.location ?? "—"}</td>
+                      <td className="p-4 text-gray-600">{s.assignedWorkerName ?? "—"}</td>
                       <td className="p-4 text-center">
                         {isActive(s) ? (
                           <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700">
@@ -209,6 +214,9 @@ export default function SupervisorSchedule() {
                     <th className="p-4 text-left font-medium text-gray-500">
                       Location
                     </th>
+                    <th className="p-4 text-left font-medium text-gray-500">
+                      Worker
+                    </th>
                   </tr>
                 </thead>
                 <tbody
@@ -223,6 +231,7 @@ export default function SupervisorSchedule() {
                         {fmtT(s.endTime)}
                       </td>
                       <td className="p-4">{s.location ?? "—"}</td>
+                      <td className="p-4">{s.assignedWorkerName ?? "—"}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -232,6 +241,12 @@ export default function SupervisorSchedule() {
         )}
       </div>
 
+      {successMsg && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-5 py-3 rounded-xl text-white text-sm font-medium shadow-lg" style={{ backgroundColor: "#00523E" }}>
+          <CheckCircle size={16} />{successMsg}
+        </div>
+      )}
+
       {showCreate && (
         <CreateShiftModal
           workers={workers}
@@ -239,6 +254,8 @@ export default function SupervisorSchedule() {
           onCreated={() => {
             setShowCreate(false);
             load();
+            setSuccessMsg("Shift created successfully!");
+            setTimeout(() => setSuccessMsg(""), 4000);
           }}
         />
       )}

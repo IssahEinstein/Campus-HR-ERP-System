@@ -1,8 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
 import * as supervisorsApi from "../../api/supervisors";
 import * as attendanceApi from "../../api/attendance";
 import * as payrollApi from "../../api/payroll";
+import * as availabilityApi from "../../api/availability";
+import * as timeoffApi from "../../api/timeoff";
 import FeedbackModal from "../../components/modals/FeedbackModal";
 
 function normalizeWorker(w) {
@@ -17,13 +19,42 @@ function normalizeWorker(w) {
   };
 }
 
+function formatTime12(value) {
+  const text = String(value ?? "").trim().replace(/\s+/g, " ").toUpperCase();
+  const match = text.match(/^(\d{1,2}):(\d{2})(?::\d{2})?(?:\s*(AM|PM))?$/);
+  if (!match) return text;
+
+  let hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  const meridiem = match[3] ?? null;
+  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return text;
+
+  if (meridiem) {
+    if (meridiem === "AM") hours = hours % 12;
+    else hours = (hours % 12) + 12;
+  }
+
+  const suffix = hours >= 12 ? "PM" : "AM";
+  const hours12 = ((hours + 11) % 12) + 1;
+  return `${hours12}:${String(minutes).padStart(2, "0")} ${suffix}`;
+}
+
 export default function WorkerProfile() {
   const { workerId } = useParams();
   const [worker, setWorker] = useState(null);
   const [attendance, setAttendance] = useState([]);
   const [payStubs, setPayStubs] = useState([]);
+  const [availability, setAvailability] = useState([]);
+  const [approvedTimeOff, setApprovedTimeOff] = useState([]);
   const [loading, setLoading] = useState(true);
   const [feedback, setFeedback] = useState(false);
+
+  const fetchAttendance = useCallback(() => {
+    if (!workerId) return;
+    attendanceApi.workerAttendance(workerId)
+      .then(setAttendance)
+      .catch(console.error);
+  }, [workerId]);
 
   useEffect(() => {
     if (!workerId) return;
@@ -31,16 +62,28 @@ export default function WorkerProfile() {
       supervisorsApi.myWorkers(),
       attendanceApi.workerAttendance(workerId),
       payrollApi.workerPayStubs(workerId),
+      availabilityApi.workerAvailability(workerId),
+      timeoffApi.workerTimeOff(workerId),
     ])
-      .then(([workers, att, stubs]) => {
+      .then(([workers, att, stubs, slots, requests]) => {
         const normalized = workers.map(normalizeWorker);
         setWorker(normalized.find((w) => w.id === workerId) ?? null);
         setAttendance(att);
         setPayStubs(stubs);
+        setAvailability(slots);
+        setApprovedTimeOff(
+          requests.filter((request) => String(request.status) === "APPROVED"),
+        );
       })
       .catch(console.error)
       .finally(() => setLoading(false));
   }, [workerId]);
+
+  // Poll attendance every 30 s so checkout times appear without a full page reload
+  useEffect(() => {
+    const id = setInterval(fetchAttendance, 30_000);
+    return () => clearInterval(id);
+  }, [fetchAttendance]);
 
   const fmt = (iso) =>
     new Date(iso).toLocaleDateString("en-US", {
@@ -54,6 +97,15 @@ export default function WorkerProfile() {
       minute: "2-digit",
     });
   const currency = (n) => `$${(Number(n) || 0).toFixed(2)}`;
+  const dayNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  const fmtDateTime = (iso) =>
+    new Date(iso).toLocaleString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
 
   if (loading)
     return (
@@ -182,6 +234,61 @@ export default function WorkerProfile() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div
+          className="rounded-2xl overflow-hidden"
+          style={{
+            background:
+              "linear-gradient(160deg, rgba(255,255,255,0.78) 0%, rgba(242,250,245,0.88) 100%)",
+            backdropFilter: "blur(18px)",
+            WebkitBackdropFilter: "blur(18px)",
+            border: "1px solid rgba(0,82,62,0.11)",
+            boxShadow:
+              "0 8px 40px rgba(0,82,62,0.09), inset 0 1px 0 rgba(255,255,255,0.95)",
+          }}
+        >
+          <div
+            className="p-6 border-b"
+            style={{ borderColor: "rgba(0,82,62,0.09)" }}
+          >
+            <h2 className="text-lg font-semibold">Availability</h2>
+          </div>
+          {availability.length === 0 ? (
+            <div className="p-8 text-center text-gray-400 text-sm">
+              No availability set.
+            </div>
+          ) : (
+            <div
+              className="divide-y"
+              style={{ borderColor: "rgba(0,82,62,0.07)" }}
+            >
+              {availability.map((slot) => (
+                <div key={slot.id} className="px-6 py-3 text-sm">
+                  <div className="text-gray-700">
+                    {dayNames[slot.dayOfWeek] ?? "Day"} {formatTime12(slot.startTime)} - {formatTime12(slot.endTime)}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          <div
+            className="p-6 border-t"
+            style={{ borderColor: "rgba(0,82,62,0.09)" }}
+          >
+            <h3 className="text-sm font-semibold text-gray-700 mb-2">Approved Time-Off</h3>
+            {approvedTimeOff.length === 0 ? (
+              <p className="text-sm text-gray-400">No approved time-off requests.</p>
+            ) : (
+              <div className="space-y-2">
+                {approvedTimeOff.map((request) => (
+                  <div key={request.id} className="text-sm text-gray-600">
+                    {fmtDateTime(request.startDate)} to {fmtDateTime(request.endDate)}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* Attendance */}
         <div
           className="rounded-2xl overflow-hidden"
@@ -216,11 +323,12 @@ export default function WorkerProfile() {
                   className="px-6 py-3 text-sm hover:bg-white/40 transition-colors"
                 >
                   <div className="text-gray-700">
-                    {a.checkInTime ? fmt(a.checkInTime) : "—"}
+                    {a.shiftTitle ?? "Unknown Shift"} &mdash;{" "}
+                    {a.checkedInAt ? fmt(a.checkedInAt) : "—"}
                   </div>
                   <div className="text-gray-400 text-xs">
-                    {a.checkInTime ? fmtT(a.checkInTime) : "—"} →{" "}
-                    {a.checkOutTime ? fmtT(a.checkOutTime) : "not checked out"}
+                    {a.checkedInAt ? fmtT(a.checkedInAt) : "—"} →{" "}
+                    {a.checkedOutAt ? fmtT(a.checkedOutAt) : "not checked out"}
                   </div>
                 </div>
               ))}
@@ -263,7 +371,7 @@ export default function WorkerProfile() {
                 >
                   <div>
                     <div className="text-gray-700">
-                      {fmt(s.periodStart)} – {fmt(s.periodEnd)}
+                      {fmt(s.payPeriodStart)} – {fmt(s.payPeriodEnd)}
                     </div>
                     <div className="text-xs text-gray-400">
                       {(Number(s.totalHours) || 0).toFixed(1)} hrs

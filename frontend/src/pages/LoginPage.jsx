@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Navigate } from "react-router-dom";
 import { ChevronRight } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import PasswordInput from "../components/PasswordInput";
 
 export default function LoginPage() {
   const { user, login } = useAuth();
@@ -17,11 +18,19 @@ export default function LoginPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const submittedEmail = String(formData.get("email") ?? "").trim();
+    const submittedPassword = String(formData.get("password") ?? "");
+
+    // Keep controlled state synced with what was actually submitted from the DOM.
+    setEmail(submittedEmail);
+    setPassword(submittedPassword);
+
     setError(null);
     setLoading(true);
-    console.log("📝 [LoginPage] Submitting:", { email: email.trim() });
+    console.log("📝 [LoginPage] Submitting:", { email: submittedEmail });
     try {
-      await login(email.trim(), password);
+      await login(submittedEmail, submittedPassword);
       console.log("✅ [LoginPage] Login successful");
     } catch (err) {
       console.error("❌ [LoginPage] Login error:", err);
@@ -73,6 +82,7 @@ export default function LoginPage() {
               </label>
               <input
                 type="email"
+                name="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -85,8 +95,8 @@ export default function LoginPage() {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Password
               </label>
-              <input
-                type="password"
+              <PasswordInput
+                name="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required

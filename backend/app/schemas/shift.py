@@ -24,7 +24,10 @@ class ShiftCreate(BaseModel):
     location: Optional[str] = None
     start_time: datetime
     end_time: datetime
+    worker_id: Optional[str] = None
     expected_hours: Optional[float] = None
+    repeat_weekly: bool = False
+    repeat_end_date: Optional[datetime] = None
 
     @field_validator("end_time")
     @classmethod
@@ -33,6 +36,14 @@ class ShiftCreate(BaseModel):
         if start_time and end_time <= start_time:
             raise ValueError("end_time must be after start_time")
         return end_time
+
+    @field_validator("repeat_end_date")
+    @classmethod
+    def repeat_end_after_start(cls, value, info):
+        start_time = info.data.get("start_time")
+        if value and start_time and value <= start_time:
+            raise ValueError("repeat_end_date must be after start_time")
+        return value
 
 
 class ShiftUpdate(BaseModel):
@@ -47,6 +58,7 @@ class ShiftUpdate(BaseModel):
 
 class AssignWorkerRequest(BaseModel):
     worker_id: str
+    apply_to_series: bool = False
 
 
 class ShiftResponse(BaseModel):
@@ -65,6 +77,7 @@ class ShiftResponse(BaseModel):
     end_time: datetime
     status: ShiftStatus
     expected_hours: Optional[float] = None
+    assigned_worker_name: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 
@@ -87,3 +100,20 @@ class AssignmentResponse(BaseModel):
     status: AssignmentStatus
     created_at: datetime
     shift: Optional[ShiftResponse] = None
+    check_in_record: Optional["AssignmentAttendanceResponse"] = None
+
+
+class AssignmentAttendanceResponse(BaseModel):
+    model_config = ConfigDict(
+        from_attributes=True,
+        alias_generator=to_camel,
+        populate_by_name=True,
+    )
+
+    id: str
+    worker_id: str
+    shift_assignment_id: str
+    checked_in_at: datetime
+    checked_out_at: Optional[datetime] = None
+    hours_worked: Optional[float] = None
+    notes: Optional[str] = None

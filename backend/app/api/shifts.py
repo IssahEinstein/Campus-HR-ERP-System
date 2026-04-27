@@ -19,6 +19,8 @@ async def create_shift(
     current_user: Annotated[CurrentUser, Depends(require_role("SUPERVISOR"))],
 ):
     """Supervisor creates a new shift."""
+    if body.worker_id:
+        await ensure_supervisor_owns_worker(current_user.profile_id, body.worker_id)
     return await shift_service.create_shift(body, supervisor_id=current_user.profile_id)
 
 
@@ -40,11 +42,7 @@ async def my_shift_assignments(
     current_user: Annotated[CurrentUser, Depends(require_role("WORKER"))],
 ):
     """Worker views all their shift assignments."""
-    return await _db.shiftassignment.find_many(
-        where={"workerId": current_user.profile_id},
-        include={"shift": True},
-        order={"createdAt": "desc"},
-    )
+    return await shift_service.list_worker_assignments(current_user.profile_id)
 
 
 @router.get("/{shift_id}", response_model=ShiftResponse)
@@ -88,4 +86,9 @@ async def assign_worker(
     """Supervisor assigns a worker (from their department) to one of their shifts."""
     await ensure_shift_belongs_to_supervisor(current_user.profile_id, shift_id)
     await ensure_supervisor_owns_worker(current_user.profile_id, body.worker_id)
-    return await shift_service.assign_worker(shift_id, body.worker_id, current_user.profile_id)
+    return await shift_service.assign_worker(
+        shift_id,
+        body.worker_id,
+        current_user.profile_id,
+        apply_to_series=body.apply_to_series,
+    )

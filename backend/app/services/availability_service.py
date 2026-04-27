@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from fastapi import HTTPException
 
 from app.db import get_db
@@ -15,8 +17,12 @@ async def set_availability(data: AvailabilityCreate, worker_id: str):
 
     # Prevent overlapping slots on the same day
     existing = await db.availability.find_many(where={"workerId": worker_id, "dayOfWeek": data.day_of_week})
+    new_start_minutes = _time_text_to_minutes(data.start_time)
+    new_end_minutes = _time_text_to_minutes(data.end_time)
     for slot in existing:
-        if not (data.end_time <= slot.startTime or data.start_time >= slot.endTime):
+        slot_start_minutes = _time_text_to_minutes(slot.startTime)
+        slot_end_minutes = _time_text_to_minutes(slot.endTime)
+        if not (new_end_minutes <= slot_start_minutes or new_start_minutes >= slot_end_minutes):
             raise HTTPException(
                 status_code=409,
                 detail=f"Overlaps with an existing availability slot on day {data.day_of_week}",
@@ -64,7 +70,7 @@ async def update_availability(availability_id: str, data: AvailabilityUpdate, wo
 
     new_start = update_data.get("startTime", slot.startTime)
     new_end = update_data.get("endTime", slot.endTime)
-    if new_end <= new_start:
+    if _time_text_to_minutes(new_end) <= _time_text_to_minutes(new_start):
         raise HTTPException(status_code=422, detail="end_time must be after start_time")
 
     return await db.availability.update(where={"id": availability_id}, data=update_data)
@@ -80,3 +86,22 @@ async def delete_availability(availability_id: str, worker_id: str):
 
     await db.availability.delete(where={"id": availability_id})
     return {"detail": "Availability slot deleted"}
+
+
+def _time_text_to_minutes(value: str) -> int:
+    text = " ".join(str(value or "").strip().split())
+    candidates = [
+        "%H:%M",
+        "%H:%M:%S",
+        "%I:%M %p",
+        "%I:%M:%S %p",
+    ]
+
+    for fmt in candidates:
+        try:
+            parsed = datetime.strptime(text, fmt)
+            return (parsed.hour * 60) + parsed.minute
+        except ValueError:
+            continue
+
+    raise HTTPException(status_code=422, detail=f"Invalid time value: {value}")
