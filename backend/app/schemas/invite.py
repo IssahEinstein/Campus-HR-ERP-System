@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 
 
 class BootstrapAdminRequest(BaseModel):
@@ -31,6 +31,9 @@ class InviteWorkerRequest(BaseModel):
     worker_id: str       # Human-readable 800 number
     student_id: str
     role: str = "WORKER"
+    gpa: float | None = Field(default=None, ge=0, le=4)
+    enrollment_status: str | None = None
+    course_load_credits: int | None = Field(default=None, ge=0)
 
 
 class AcceptInviteRequest(BaseModel):
@@ -40,7 +43,11 @@ class AcceptInviteRequest(BaseModel):
 
 class DepartmentCreate(BaseModel):
     name: str
+    budget_allocated: float | None = Field(default=0, ge=0)
+    budget_spent: float | None = Field(default=0, ge=0)
 
 
 class DepartmentUpdate(BaseModel):
-    name: str
+    name: str | None = None
+    budget_allocated: float | None = Field(default=None, ge=0)
+    budget_spent: float | None = Field(default=None, ge=0)

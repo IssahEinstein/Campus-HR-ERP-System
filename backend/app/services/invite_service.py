@@ -15,6 +15,7 @@ db = get_db()
 logger = logging.getLogger("task_app.invites")
 
 _PLACEHOLDER = "INVITE_PENDING"
+_ALLOWED_ENROLLMENT_STATUSES = {"FULL_TIME", "PART_TIME", "ON_LEAVE", "GRADUATED"}
 
 
 def _aware(dt: datetime) -> datetime:
@@ -97,6 +98,18 @@ async def invite_supervisor(data: InviteSupervisorRequest, admin_id: str) -> dic
 
 async def invite_admin(data: InviteAdminRequest, inviter_admin_id: str) -> dict:
     """Admin creates another admin account and sends an invite email."""
+    inviter = await db.admin.find_unique(
+        where={"id": inviter_admin_id},
+        include={"user": {"include": {"adminInvite": True}}},
+    )
+    # Only bootstrapped (system) admins can invite new admins.
+    # A bootstrapped admin has no AdminInvite record.
+    if not inviter or (inviter.user and inviter.user.adminInvite):
+        raise HTTPException(
+            status_code=403,
+            detail="Only system admins can invite new admins",
+        )
+
     recipient_email = str(data.email).strip().lower()
 
     if await db.user.find_unique(where={"email": recipient_email}):
@@ -226,6 +239,18 @@ async def invite_worker(data: InviteWorkerRequest, supervisor_id: str) -> dict:
     if requested_role != "WORKER":
         raise HTTPException(status_code=403, detail="Supervisors can only create WORKER accounts")
 
+    enrollment_status = None
+    if data.enrollment_status is not None:
+        enrollment_status = str(data.enrollment_status).strip().upper()
+        if enrollment_status not in _ALLOWED_ENROLLMENT_STATUSES:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "Invalid enrollment_status. "
+                    "Use one of: FULL_TIME, PART_TIME, ON_LEAVE, GRADUATED"
+                ),
+            )
+
     user = await db.user.create(data={
         "email": recipient_email,
         "firstName": data.first_name,
@@ -240,6 +265,9 @@ async def invite_worker(data: InviteWorkerRequest, supervisor_id: str) -> dict:
         "studentId": data.student_id,
         "departmentId": supervisor.departmentId,
         "status": "INVITED",
+        "gpa": data.gpa,
+        "enrollmentStatus": enrollment_status,
+        "courseLoadCredits": data.course_load_credits,
     })
 
     token = await invite_repo.create_worker_invite(worker.id)

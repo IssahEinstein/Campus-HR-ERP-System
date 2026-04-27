@@ -13,6 +13,9 @@ function normalizeWorker(w) {
     lastName,
     email: w.user?.email ?? w.email ?? "",
     departmentName: w.department?.name ?? w.department ?? "",
+    gpa: w.gpa ?? null,
+    enrollmentStatus: w.enrollmentStatus ?? w.enrollment_status ?? "",
+    courseLoadCredits: w.courseLoadCredits ?? w.course_load_credits ?? null,
   };
 }
 
@@ -33,6 +36,9 @@ export default function SupervisorTeam() {
     email: "",
     worker_id: "",
     student_id: "",
+    gpa: "",
+    enrollment_status: "FULL_TIME",
+    course_load_credits: "",
     role: "WORKER",
   });
 
@@ -73,6 +79,9 @@ export default function SupervisorTeam() {
       email: "",
       worker_id: "",
       student_id: "",
+      gpa: "",
+      enrollment_status: "FULL_TIME",
+      course_load_credits: "",
       role: "WORKER",
     });
     setShowInviteForm(false);
@@ -84,7 +93,14 @@ export default function SupervisorTeam() {
     setFormMessage("");
     setInviting(true);
     try {
-      const response = await supervisorsApi.inviteWorker(inviteForm);
+      const response = await supervisorsApi.inviteWorker({
+        ...inviteForm,
+        gpa: inviteForm.gpa === "" ? null : Number(inviteForm.gpa),
+        course_load_credits:
+          inviteForm.course_load_credits === ""
+            ? null
+            : Number(inviteForm.course_load_credits),
+      });
       const message =
         response?.message ?? "Worker created and invite processed.";
       if (
@@ -301,6 +317,41 @@ export default function SupervisorTeam() {
               />
             </div>
 
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <input
+                type="number"
+                name="gpa"
+                value={inviteForm.gpa}
+                onChange={handleInviteInput}
+                placeholder="GPA (0-4)"
+                min="0"
+                max="4"
+                step="0.01"
+                className="border border-gray-300 rounded-lg px-3 py-2 text-sm"
+              />
+              <select
+                name="enrollment_status"
+                value={inviteForm.enrollment_status}
+                onChange={handleInviteInput}
+                className="border border-gray-300 rounded-lg px-3 py-2 text-sm"
+              >
+                <option value="FULL_TIME">FULL_TIME</option>
+                <option value="PART_TIME">PART_TIME</option>
+                <option value="ON_LEAVE">ON_LEAVE</option>
+                <option value="GRADUATED">GRADUATED</option>
+              </select>
+              <input
+                type="number"
+                name="course_load_credits"
+                value={inviteForm.course_load_credits}
+                onChange={handleInviteInput}
+                placeholder="Course load credits"
+                min="0"
+                step="1"
+                className="border border-gray-300 rounded-lg px-3 py-2 text-sm"
+              />
+            </div>
+
             {formError && (
               <div className="rounded-lg px-4 py-3 text-sm bg-red-50 text-red-700 border border-red-200">
                 {formError}
@@ -410,6 +461,18 @@ export default function SupervisorTeam() {
                     <span className="text-gray-500">Worker ID</span>
                     <span className="font-medium text-gray-800">
                       {w.workerId || w.id?.slice(0, 8)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">Enrollment</span>
+                    <span className="font-medium text-gray-800">
+                      {w.enrollmentStatus || "-"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">GPA</span>
+                    <span className="font-medium text-gray-800">
+                      {w.gpa == null ? "-" : Number(w.gpa).toFixed(2)}
                     </span>
                   </div>
                 </div>

@@ -12,11 +12,14 @@ export const listAllWorkers = () =>
 export const listDepartments = () =>
   client.get("/admin/departments").then((r) => r.data);
 
-export const createDepartment = (name) =>
-  client.post("/admin/departments", { name }).then((r) => r.data);
+export const createDepartment = (payload) =>
+  client.post("/admin/departments", payload).then((r) => r.data);
+
+export const updateDepartment = (departmentId, payload) =>
+  client.patch(`/admin/departments/${departmentId}`, payload).then((r) => r.data);
 
 export const renameDepartment = (departmentId, name) =>
-  client.patch(`/admin/departments/${departmentId}`, { name }).then((r) => r.data);
+  updateDepartment(departmentId, { name });
 
 export const deleteDepartment = (departmentId) =>
   client.delete(`/admin/departments/${departmentId}`).then((r) => r.data);
@@ -33,6 +36,15 @@ export const resendSupervisorInvite = (supervisorId) =>
 export const resendAdminInvite = (adminProfileId) =>
   client.post(`/admin/admins/${adminProfileId}/resend-invite`).then((r) => r.data);
 
+export const activateAdmin = (adminProfileId) =>
+  client.patch(`/admin/admins/${adminProfileId}/activate`).then((r) => r.data);
+
+export const deactivateAdmin = (adminProfileId) =>
+  client.patch(`/admin/admins/${adminProfileId}/deactivate`).then((r) => r.data);
+
+export const deleteAdmin = (adminProfileId) =>
+  client.delete(`/admin/admins/${adminProfileId}`).then((r) => r.data);
+
 export const deleteSupervisor = (supervisorId) =>
   client.delete(`/admin/supervisors/${supervisorId}`).then((r) => r.data);
 
@@ -41,3 +53,23 @@ export const getSemesterSettings = () =>
 
 export const updateSemesterSettings = (body) =>
   client.put("/admin/semester-settings", body).then((r) => r.data);
+
+export const getDashboardSummary = () =>
+  client.get("/admin/dashboard").then((r) => r.data);
+
+export const getAllDepartmentStats = () =>
+  client.get("/admin/departments/stats").then((r) => r.data);
+
+export const getSystemStats = () =>
+  client.get("/admin/system/stats").then((r) => r.data);
+
+export const getSystemUsage = () =>
+  client.get("/admin/system/usage").then((r) => r.data);
+
+export const getPayrollByDepartment = () =>
+  client.get("/admin/payroll/by-department").then((r) => r.data);
+
+export const exportDepartmentsCSV = () =>
+  client
+    .get("/admin/departments/export", { responseType: "blob" })
+    .then((r) => r.data);

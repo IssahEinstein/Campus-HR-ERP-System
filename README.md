@@ -2,6 +2,8 @@ Campus Job ERP — Backend (FastAPI + Prisma + Supabase)
 
 A full‑stack HR + Scheduling + Payroll system designed for university student employment. This backend powers authentication, supervisor workflows, worker operations, scheduling, payroll, and performance feedback using FastAPI, Prisma, and Supabase PostgreSQL.
 
+The current platform is also being expanded toward a unified university ERP that connects campus jobs, academic records, finance visibility, departmental operations, and system-wide administration in one platform.
+
 ---
 
  Features
@@ -11,7 +13,9 @@ A full‑stack HR + Scheduling + Payroll system designed for university student 
 • JWT‑based auth (30‑min access tokens, 7‑day refresh tokens)
 • HttpOnly refresh cookies for secure session management
 • Device‑based session tracking
-• Role‑based authorization (Supervisor vs Worker)
+• Role‑based authorization (Admin, Supervisor, Worker)
+• Account activation/deactivation enforcement in login, refresh, and protected routes
+• Access tokens carry normalized role/profile claims for protected routes and client-side role-aware flows
 
 
  HR & User Management
@@ -20,6 +24,8 @@ A full‑stack HR + Scheduling + Payroll system designed for university student 
 • Worker pre‑registration (invitation system)
 • Email‑based signup validation
 • Department + role assignments
+• Worker academic profile capture (student ID, GPA, enrollment status, course load)
+• Multi-level admin lifecycle controls (activate, deactivate, delete) with system-admin enforcement
 
 
  Scheduling & Shifts
@@ -50,6 +56,35 @@ A full‑stack HR + Scheduling + Payroll system designed for university student 
 
 • Supervisor feedback submissions
 • Worker feedback history
+
+
+---
+
+ ERP Expansion Status (Implemented)
+
+Unified University ERP Version
+
+• Campus jobs, academic worker metadata, and finance visibility are surfaced in one platform
+• Student work profiles are linked with academic records (GPA, enrollment status, credits)
+• Employment activity and enrollment activity are exposed together in worker/supervisor/admin views
+
+Department-Level Expansion Within the ERP
+
+• Department budgets and spending are stored and displayed
+• Department workforce size is tracked (supervisors, workers, students)
+• Department workload/resource use is represented through active-worker and staffing metrics
+• Department cards and CSV exports include budget allocated/spent/remaining values
+
+System Monitoring and Performance Oversight
+
+• Most-used API features are tracked since server start
+• Admin analytics provides friendly feature labels (including dynamic route pattern mapping)
+
+Multi-Level System Admins
+
+• System admins can create and manage other admins
+• System-level admin sits above department-level admin
+• Sensitive admin operations (invite admin, activate/deactivate admin, delete admin) are restricted to system admins
 
 
 ---
@@ -143,6 +178,44 @@ Supervisors	/api/supervisors
 Admin	/api/admin
 
 
+Admin — Dashboard & Reporting (implemented)
+
+Method	Endpoint	Description
+GET	/api/admin/dashboard	Unified dashboard: system stats + dept breakdown + payroll + top features
+GET	/api/admin/payroll/by-department	Total gross/net pay and hours grouped by department
+GET	/api/admin/departments/export	Download full department report as CSV
+
+
+Admin — Department Analytics (implemented)
+
+Method	Endpoint	Description
+GET	/api/admin/departments/stats	All departments with workforce + student counts
+GET	/api/admin/departments/{id}/stats	Single department workforce metrics
+
+
+Admin — System Overview (implemented)
+
+Method	Endpoint	Description
+GET	/api/admin/system/stats	Total admins (system vs dept level), supervisors, workers, departments
+GET	/api/admin/system/usage	Most-used API features since server start
+
+
+Admin — Multi-Level Admin Controls (implemented)
+
+Method	Endpoint	Description
+PATCH	/api/admin/admins/{admin_profile_id}/activate	Reactivate an admin account (system admin only)
+PATCH	/api/admin/admins/{admin_profile_id}/deactivate	Deactivate an admin account (system admin only)
+DELETE	/api/admin/admins/{admin_profile_id}	Delete an admin account (system admin only)
+
+
+Multi-Level Admin Model (implemented)
+
+• System admin — bootstrapped directly (no AdminInvite record); has full system-wide authority
+• Department admin — created via invite-admin flow (has AdminInvite); scoped to department management
+• /api/admin/admins returns is_system_admin: bool per admin record
+• /api/admin/system/stats breaks down admin count into system_admins vs department_admins
+
+
 Full endpoint list is available at http://localhost:8000/docs (Swagger UI) when the server is running.
 
 ---
@@ -153,7 +226,8 @@ The project uses pytest with pytest-asyncio for unit testing.
 
 Run the full test suite:
 
-pytest
+cd backend
+PYTHONPATH=. pytest
 
 Test coverage includes:
 
@@ -188,6 +262,11 @@ SMTP_PASSWORD=your-app-password
 APP_NAME=Campus Job ERP
 FRONTEND_URL=http://localhost:3000
 
+Local development note
+
+• Use matching frontend origins in ALLOWED_ORIGINS (for example: http://127.0.0.1:5173 and http://localhost:5173)
+• Refresh cookie secure flag is automatically relaxed for localhost/127.0.0.1 frontend URLs to support local HTTP testing
+
 
 ---
 
@@ -211,6 +290,11 @@ prisma migrate deploy
 4. Start FastAPI server
 
 uvicorn app.main:app --reload
+
+
+Backend validation note
+
+Run backend commands from the backend directory so the app package resolves consistently during local development and testing.
 
 
 ---
@@ -240,6 +324,7 @@ Pull Requests
 • Required for all merges
 • Must pass linting + tests
 • Must be reviewed by repo owner
+• Must update README when a change affects product scope, system behavior, architecture, setup, roles, or workflows
 
 
 Adding Collaborators

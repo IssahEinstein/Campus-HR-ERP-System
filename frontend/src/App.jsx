@@ -30,6 +30,9 @@ import SupervisorPayroll from "./pages/supervisor/Payroll";
 import WorkerProfile from "./pages/supervisor/WorkerProfile";
 
 import AdminDashboard from "./pages/admin/Dashboard";
+import AdminAnalytics from "./pages/admin/Analytics";
+import DepartmentStats from "./pages/admin/DepartmentStats";
+import PayrollReport from "./pages/admin/PayrollReport";
 
 function AppLayout() {
   return (
@@ -111,6 +114,9 @@ export default function App() {
           <Route element={<PrivateRoute allowedRoles={["ADMIN"]} />}>
             <Route element={<AppLayout />}>
               <Route path="/admin/dashboard" element={<AdminDashboard />} />
+              <Route path="/admin/analytics" element={<AdminAnalytics />} />
+              <Route path="/admin/departments/stats" element={<DepartmentStats />} />
+              <Route path="/admin/payroll/report" element={<PayrollReport />} />
               <Route path="/admin/profile" element={<ProfileSettings />} />
             </Route>
           </Route>

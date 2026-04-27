@@ -9,6 +9,13 @@ from app.schemas.common import SemesterSettingsUpdate
 db = get_db()
 
 
+def _is_system_admin(admin_record) -> bool:
+    """Return True if this admin was bootstrapped (no AdminInvite record = system admin)."""
+    if admin_record is None:
+        return False
+    return not (admin_record.user and admin_record.user.adminInvite)
+
+
 async def bootstrap_admin(body: BootstrapAdminRequest, provided_key: str | None) -> dict:
     """Create the first admin account exactly once, guarded by a bootstrap key."""
     existing_admin = await db.admin.find_first()
@@ -53,11 +60,7 @@ async def bootstrap_admin(body: BootstrapAdminRequest, provided_key: str | None)
 
 
 async def delete_supervisor(supervisor_id: str) -> dict:
-    """Delete a supervisor and their linked user account.
-
-    This preserves historical request records by clearing reviewedBy references
-    before deleting the supervisor profile via user cascade.
-    """
+    """Delete a supervisor and their linked user account."""
     supervisor = await db.supervisor.find_unique(
         where={"id": supervisor_id},
         include={"user": True},
@@ -65,7 +68,6 @@ async def delete_supervisor(supervisor_id: str) -> dict:
     if not supervisor:
         raise HTTPException(status_code=404, detail="Supervisor not found")
 
-    # Keep request history intact while removing the reviewer relation.
     await db.timeoffrequest.update_many(
         where={"reviewedById": supervisor_id},
         data={"reviewedById": None},
@@ -75,13 +77,80 @@ async def delete_supervisor(supervisor_id: str) -> dict:
         data={"reviewedById": None},
     )
 
-    # Deleting the user cascades to supervisor profile, sessions, invites,
-    # and downstream supervisor-owned entities.
     await db.user.delete(where={"id": supervisor.userId})
 
     return {
         "message": "Supervisor deleted successfully",
         "email": supervisor.user.email,
+    }
+
+
+async def set_admin_active_state(
+    admin_profile_id: str,
+    is_active: bool,
+    acting_admin_profile_id: str,
+) -> dict:
+    acting = await db.admin.find_unique(
+        where={"id": acting_admin_profile_id},
+        include={"user": {"include": {"adminInvite": True}}},
+    )
+    if not _is_system_admin(acting):
+        raise HTTPException(
+            status_code=403,
+            detail="Only system admins can change other admin accounts",
+        )
+
+    target = await db.admin.find_unique(
+        where={"id": admin_profile_id},
+        include={"user": True},
+    )
+    if not target:
+        raise HTTPException(status_code=404, detail="Admin not found")
+
+    if admin_profile_id == acting_admin_profile_id and not is_active:
+        raise HTTPException(status_code=400, detail="You cannot deactivate your own admin account")
+
+    if bool(getattr(target.user, "isActive", True)) == bool(is_active):
+        return {
+            "message": f"Admin is already {'active' if is_active else 'inactive'}",
+            "email": target.user.email,
+            "is_active": bool(is_active),
+        }
+
+    await db.user.update(where={"id": target.userId}, data={"isActive": bool(is_active)})
+
+    return {
+        "message": f"Admin {'activated' if is_active else 'deactivated'} successfully",
+        "email": target.user.email,
+        "is_active": bool(is_active),
+    }
+
+
+async def delete_admin(admin_profile_id: str, acting_admin_profile_id: str) -> dict:
+    acting = await db.admin.find_unique(
+        where={"id": acting_admin_profile_id},
+        include={"user": {"include": {"adminInvite": True}}},
+    )
+    if not _is_system_admin(acting):
+        raise HTTPException(
+            status_code=403,
+            detail="Only system admins can delete admin accounts",
+        )
+
+    target = await db.admin.find_unique(
+        where={"id": admin_profile_id},
+        include={"user": True},
+    )
+    if not target:
+        raise HTTPException(status_code=404, detail="Admin not found")
+
+    if admin_profile_id == acting_admin_profile_id:
+        raise HTTPException(status_code=400, detail="You cannot delete your own admin account")
+
+    await db.user.delete(where={"id": target.userId})
+    return {
+        "message": "Admin deleted successfully",
+        "email": target.user.email,
     }
 
 
@@ -96,6 +165,32 @@ async def get_semester_settings() -> dict:
     return {
         "semester_start_date": settings_row["semesterStartDate"],
         "semester_end_date": settings_row["semesterEndDate"],
+    }
+
+
+async def get_system_stats() -> dict:
+    """System-wide operational overview."""
+    total_admins = await db.admin.count()
+    total_supervisors = await db.supervisor.count()
+    total_workers = await db.worker.count()
+    active_workers = await db.worker.count(where={"status": "ACTIVE"})
+    total_departments = await db.department.count()
+
+    all_admins = await db.admin.find_many(
+        include={"user": {"include": {"adminInvite": True}}}
+    )
+    system_admin_count = sum(1 for a in all_admins if _is_system_admin(a))
+
+    return {
+        "total_admins": total_admins,
+        "total_supervisors": total_supervisors,
+        "total_workers": total_workers,
+        "active_workers": active_workers,
+        "total_departments": total_departments,
+        "admin_levels": {
+            "system_admins": system_admin_count,
+            "department_admins": total_admins - system_admin_count,
+        },
     }
 
 

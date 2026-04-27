@@ -7,14 +7,20 @@ from app.core.config import settings
 from app.exceptions import InvalidToken, TokenExpired
 
 
+def _string_claim(value: Any) -> Optional[str]:
+    if value is None:
+        return None
+    return str(value)
+
+
 def create_access_token(subject: str, role: str, email: str, profile_id: Optional[str] = None) -> str:
     """Create a short-lived JWT access token."""
     expires = datetime.now(timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     payload: dict[str, Any] = {
-        "sub": subject,
-        "role": role,
-        "email": email,
-        "profile_id": profile_id,
+        "sub": _string_claim(subject),
+        "role": _string_claim(role),
+        "email": _string_claim(email),
+        "profile_id": _string_claim(profile_id),
         "exp": expires,
         "type": "access",
     }
@@ -25,8 +31,8 @@ def create_refresh_token(subject: str, device_id: str) -> str:
     """Create a long-lived JWT refresh token (stored in HttpOnly cookie)."""
     expires = datetime.now(timezone.utc) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
     payload: dict[str, Any] = {
-        "sub": subject,
-        "device_id": device_id,
+        "sub": _string_claim(subject),
+        "device_id": _string_claim(device_id),
         "exp": expires,
         "type": "refresh",
     }
