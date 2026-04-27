@@ -2,6 +2,8 @@ Campus Job ERP — Backend (FastAPI + Prisma + Supabase)
 
 A full‑stack HR + Scheduling + Payroll system designed for university student employment. This backend powers authentication, supervisor workflows, worker operations, scheduling, payroll, and performance feedback using FastAPI, Prisma, and Supabase PostgreSQL.
 
+The current platform is also being expanded toward a unified university ERP that connects campus jobs, academic records, finance visibility, departmental operations, and system-wide administration in one platform.
+
 ---
 
  Features
@@ -12,6 +14,7 @@ A full‑stack HR + Scheduling + Payroll system designed for university student 
 • HttpOnly refresh cookies for secure session management
 • Device‑based session tracking
 • Role‑based authorization (Supervisor vs Worker)
+• Access tokens carry normalized role/profile claims for protected routes and client-side role-aware flows
 
 
  HR & User Management
@@ -50,6 +53,42 @@ A full‑stack HR + Scheduling + Payroll system designed for university student 
 
 • Supervisor feedback submissions
 • Worker feedback history
+
+
+---
+
+ Planned ERP Expansion
+
+The next major product direction is to evolve Campus Job ERP into a broader university ERP in phased releases.
+
+Unified University ERP Version
+
+• Connect campus jobs, academics, and finances into one platform
+• Link student work profiles with academic records
+• Track both employment activity and enrolment activity in one system
+
+Department-Level Expansion Within the ERP
+
+• Track department budgets and spending
+• Monitor department workforce size
+• Compare department workload and resource use
+• View how many students each department is handling
+
+System Monitoring and Performance Oversight
+
+• Identify the most frequently used features
+• Surface system usage, performance, and operational trends
+
+Multi-Level System Admins
+
+• Let system admins create and manage other admins
+• Create a system-level admin above department admin
+• Expand admin controls beyond department-scoped oversight
+
+Implementation Note
+
+• These capabilities are roadmap items unless explicitly marked as implemented in the API, schema, service, or frontend sections of this README
+• Feature work should update this README alongside code changes so the documented scope stays aligned with the product state
 
 
 ---
@@ -143,6 +182,36 @@ Supervisors	/api/supervisors
 Admin	/api/admin
 
 
+Admin — Dashboard & Reporting (implemented)
+
+Method	Endpoint	Description
+GET	/api/admin/dashboard	Unified dashboard: system stats + dept breakdown + payroll + top features
+GET	/api/admin/payroll/by-department	Total gross/net pay and hours grouped by department
+GET	/api/admin/departments/export	Download full department report as CSV
+
+
+Admin — Department Analytics (implemented)
+
+Method	Endpoint	Description
+GET	/api/admin/departments/stats	All departments with workforce + student counts
+GET	/api/admin/departments/{id}/stats	Single department workforce metrics
+
+
+Admin — System Overview (implemented)
+
+Method	Endpoint	Description
+GET	/api/admin/system/stats	Total admins (system vs dept level), supervisors, workers, departments
+GET	/api/admin/system/usage	Most-used API features since server start
+
+
+Multi-Level Admin Model (implemented)
+
+• System admin — bootstrapped directly (no AdminInvite record); has full system-wide authority
+• Department admin — created via invite-admin flow (has AdminInvite); scoped to department management
+• /api/admin/admins returns is_system_admin: bool per admin record
+• /api/admin/system/stats breaks down admin count into system_admins vs department_admins
+
+
 Full endpoint list is available at http://localhost:8000/docs (Swagger UI) when the server is running.
 
 ---
@@ -153,7 +222,8 @@ The project uses pytest with pytest-asyncio for unit testing.
 
 Run the full test suite:
 
-pytest
+cd backend
+PYTHONPATH=. pytest
 
 Test coverage includes:
 
@@ -213,6 +283,11 @@ prisma migrate deploy
 uvicorn app.main:app --reload
 
 
+Backend validation note
+
+Run backend commands from the backend directory so the app package resolves consistently during local development and testing.
+
+
 ---
 
 🔐 CORS Configuration
@@ -240,6 +315,7 @@ Pull Requests
 • Required for all merges
 • Must pass linting + tests
 • Must be reviewed by repo owner
+• Must update README when a change affects product scope, system behavior, architecture, setup, roles, or workflows
 
 
 Adding Collaborators

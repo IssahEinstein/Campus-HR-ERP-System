@@ -41,3 +41,23 @@ export const getSemesterSettings = () =>
 
 export const updateSemesterSettings = (body) =>
   client.put("/admin/semester-settings", body).then((r) => r.data);
+
+export const getDashboardSummary = () =>
+  client.get("/admin/dashboard").then((r) => r.data);
+
+export const getAllDepartmentStats = () =>
+  client.get("/admin/departments/stats").then((r) => r.data);
+
+export const getSystemStats = () =>
+  client.get("/admin/system/stats").then((r) => r.data);
+
+export const getSystemUsage = () =>
+  client.get("/admin/system/usage").then((r) => r.data);
+
+export const getPayrollByDepartment = () =>
+  client.get("/admin/payroll/by-department").then((r) => r.data);
+
+export const exportDepartmentsCSV = () =>
+  client
+    .get("/admin/departments/export", { responseType: "blob" })
+    .then((r) => r.data);

@@ -7,6 +7,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.core.logging_config import logger
 from app.core.config import settings
+from app.core import usage as usage_tracker
 from app.db import connect_db, disconnect_db
 
 # ── Routers ────────────────────────────────────────────────────────────────────
@@ -41,6 +42,16 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# ── Feature usage tracking ─────────────────────────────────────────────────────
+@app.middleware("http")
+async def track_feature_usage(request: Request, call_next):
+    response = await call_next(request)
+    # Only track API routes, skip health/static
+    if request.url.path.startswith("/api/"):
+        usage_tracker.record_hit(request.url.path)
+    return response
 
 # ── Routers ────────────────────────────────────────────────────────────────────
 app.include_router(auth_router,        prefix="/api", tags=["Auth"])

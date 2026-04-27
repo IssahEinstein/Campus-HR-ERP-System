@@ -25,6 +25,9 @@ const NAV_LINKS = {
   ],
   ADMIN: [
     { label: "Dashboard", to: "/admin/dashboard" },
+    { label: "Analytics", to: "/admin/analytics" },
+    { label: "Departments", to: "/admin/departments/stats" },
+    { label: "Payroll Report", to: "/admin/payroll/report" },
     { label: "Profile", to: "/admin/profile" },
   ],
 };

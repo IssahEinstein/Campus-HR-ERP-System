@@ -110,8 +110,9 @@ async def login(email: str, password: str, device_id: str | None = None) -> tupl
     if not verify_password(password, user.passwordHash):
         raise InvalidCredentials()
 
-    # get_user_by_email now includes all profile relations — no second query needed
-    user_full = user
+    user_full = await get_user_with_profile(user.id)
+    if user_full is None:
+        user_full = user
 
     supervisor_invite_pending = (
         str(user.role) == "SUPERVISOR"

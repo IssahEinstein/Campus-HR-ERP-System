@@ -99,6 +99,39 @@ async def get_semester_settings() -> dict:
     }
 
 
+async def get_system_stats() -> dict:
+    """
+    System-wide operational overview.
+    System admins (bootstrapped, no AdminInvite) are distinguished from
+    department-level admins (created via invite-admin flow).
+    """
+    total_admins = await db.admin.count()
+    total_supervisors = await db.supervisor.count()
+    total_workers = await db.worker.count()
+    active_workers = await db.worker.count(where={"status": "ACTIVE"})
+    total_departments = await db.department.count()
+
+    all_admins = await db.admin.find_many(
+        include={"user": {"include": {"adminInvite": True}}}
+    )
+    system_admin_count = sum(
+        1 for a in all_admins
+        if not (a.user and a.user.adminInvite)
+    )
+
+    return {
+        "total_admins": total_admins,
+        "total_supervisors": total_supervisors,
+        "total_workers": total_workers,
+        "active_workers": active_workers,
+        "total_departments": total_departments,
+        "admin_levels": {
+            "system_admins": system_admin_count,
+            "department_admins": total_admins - system_admin_count,
+        },
+    }
+
+
 async def upsert_semester_settings(body: SemesterSettingsUpdate) -> dict:
     start_iso = body.semester_start_date.isoformat()
     end_iso = body.semester_end_date.isoformat()

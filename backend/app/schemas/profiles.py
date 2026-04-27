@@ -89,4 +89,49 @@ class AdminResponse(BaseModel):
     user_id: str
     created_at: datetime
     invite_pending: bool = False
+    is_system_admin: bool = False
     user: Optional[UserBasic] = None
+
+
+class DepartmentStatsResponse(BaseModel):
+    """Department-level workforce and workload metrics."""
+    id: str
+    name: str
+    supervisor_count: int
+    worker_count: int
+    active_worker_count: int
+    student_count: int
+
+
+class SystemStatsResponse(BaseModel):
+    """System-wide operational overview for system-level admins."""
+    total_admins: int
+    total_supervisors: int
+    total_workers: int
+    active_workers: int
+    total_departments: int
+    admin_levels: dict
+
+
+class SystemUsageResponse(BaseModel):
+    """Most-used API features since server start."""
+    usage: dict[str, int]
+    top_feature: Optional[str] = None
+
+
+class DeptPayrollResponse(BaseModel):
+    """Payroll cost rollup for a single department."""
+    department_id: str
+    department_name: str
+    total_gross_pay: float
+    total_net_pay: float
+    total_hours: float
+    paystub_count: int
+
+
+class DashboardSummaryResponse(BaseModel):
+    """Full admin dashboard summary — system stats, dept breakdown, payroll, top features."""
+    system: SystemStatsResponse
+    departments: list[DepartmentStatsResponse]
+    payroll_by_department: list[DeptPayrollResponse]
+    top_features: dict[str, int]

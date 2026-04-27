@@ -60,3 +60,28 @@ async def delete_department(dept_id: str) -> MessageResponse:
 
     await db.department.delete(where={"id": dept_id})
     return MessageResponse(message=f"Department '{dept.name}' deleted successfully")
+
+
+async def get_department_stats(dept_id: str) -> dict:
+    """Return workforce and workload metrics for a single department."""
+    dept = await get_department(dept_id)
+    supervisor_count = await db.supervisor.count(where={"departmentId": dept_id})
+    worker_count = await db.worker.count(where={"departmentId": dept_id})
+    active_worker_count = await db.worker.count(where={"departmentId": dept_id, "status": "ACTIVE"})
+    return {
+        "id": dept.id,
+        "name": dept.name,
+        "supervisor_count": supervisor_count,
+        "worker_count": worker_count,
+        "active_worker_count": active_worker_count,
+        "student_count": worker_count,
+    }
+
+
+async def get_all_department_stats() -> list[dict]:
+    """Return workforce metrics for every department — used by the admin dashboard."""
+    departments = await db.department.find_many(order={"name": "asc"})
+    return [
+        await get_department_stats(dept.id)
+        for dept in departments
+    ]
