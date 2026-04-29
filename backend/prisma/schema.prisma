@@ -142,36 +142,6 @@ model Session {
   @@unique([userId, deviceId])
 }
 
-enum DepartmentType {
-  GENERAL
-  ADMISSION
-  FINANCE
-  ACADEMICS
-}
-
-enum WorkerType {
-  WORKER
-  STUDENT
-  TEACHER
-}
-
-enum PaymentType {
-  ENROLLMENT
-  TUITION
-}
-
-enum PaymentStatus {
-  PENDING
-  COMPLETED
-  FAILED
-}
-
-enum CourseEnrollmentStatus {
-  ENROLLED
-  COMPLETED
-  DROPPED
-}
-
 // ============================================================================
 // ORGANIZATION / DEPARTMENTS + ROLE PROFILES
 // ============================================================================
@@ -179,7 +149,6 @@ enum CourseEnrollmentStatus {
 model Department {
   id   String @id @default(cuid())
   name String @unique
-  type DepartmentType @default(GENERAL)
 
   budgetAllocated Float @default(0)
   budgetSpent     Float @default(0)
@@ -189,8 +158,6 @@ model Department {
 
   supervisors Supervisor[]
   workers     Worker[]
-  payments    Payment[]
-  courses     Course[]
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -278,7 +245,6 @@ model Worker {
   department    Department @relation(fields: [departmentId], references: [id])
   studentId     String     @unique
   workerId      String     @unique // 800 number or worker identifier (human-readable ID)
-  workerType    WorkerType @default(WORKER)
   status        WorkerStatus @default(INVITED)
   gpa           Float?
   enrollmentStatus EnrollmentStatus @default(FULL_TIME)
@@ -291,12 +257,8 @@ model Worker {
   swapRequestsTo   ShiftSwapRequest[] @relation("SwapTargetWorker")
   availability     Availability[]
   payStubs         PayStub[]
-  payments         Payment[]
-  courseEnrollments CourseEnrollment[]
-  coursesTaught    Course[] @relation("TeacherCourses")
   feedbackReceived Feedback[] @relation("WorkerFeedback")
   invites          WorkerInvite[]
-  graduationRequests GraduationRequest[]
 
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -338,7 +300,6 @@ model Shift {
   endTime       DateTime
   status        ShiftStatus @default(SCHEDULED)
   expectedHours Float?
-  requiredGpa   Float?
   isRecurring   Boolean @default(false)
   recurrenceGroupId String?
 
@@ -507,90 +468,6 @@ model PayStub {
 
   @@unique([workerId, payPeriodStart, payPeriodEnd])
   @@index([workerId])
-  @@index([status])
-}
-
-model Payment {
-  id           String         @id @default(cuid())
-  workerId     String
-  worker       Worker         @relation(fields: [workerId], references: [id], onDelete: Cascade)
-  departmentId String?
-  department   Department?    @relation(fields: [departmentId], references: [id])
-  type         PaymentType    @default(ENROLLMENT)
-  status       PaymentStatus  @default(COMPLETED)
-  amount       Float
-  description  String?
-  semester     String?
-
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
-
-  @@index([workerId])
-  @@index([departmentId])
-  @@index([status])
-}
-
-model Course {
-  id          String   @id @default(cuid())
-  departmentId String
-  department  Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
-  teacherId   String?
-  teacher     Worker?   @relation("TeacherCourses", fields: [teacherId], references: [id])
-  code        String
-  name        String
-  credits     Int      @default(1)
-
-  enrollments CourseEnrollment[]
-
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@index([departmentId])
-  @@index([teacherId])
-}
-
-model CourseEnrollment {
-  id        String   @id @default(cuid())
-  studentId String
-  student   Worker   @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  courseId  String
-  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  status    CourseEnrollmentStatus @default(ENROLLED)
-
-  grade     Grade?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([studentId, courseId])
-  @@index([studentId])
-  @@index([courseId])
-}
-
-model Grade {
-  id                 String           @id @default(cuid())
-  courseEnrollmentId String           @unique
-  courseEnrollment   CourseEnrollment @relation(fields: [courseEnrollmentId], references: [id], onDelete: Cascade)
-  gradeValue         Float
-  letterGrade        String?          
-
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
-
-  @@index([courseEnrollmentId])
-}
-
-model GraduationRequest {
-  id         String        @id @default(cuid())
-  studentId  String
-  student    Worker        @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  status     RequestStatus @default(PENDING)
-  note       String?
-
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
-  @@index([studentId])
   @@index([status])
 }
 

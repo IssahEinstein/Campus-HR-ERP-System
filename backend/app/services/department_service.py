@@ -14,17 +14,6 @@ def _validate_budget_pair(budget_allocated: float, budget_spent: float) -> None:
         raise HTTPException(status_code=400, detail="budget_spent cannot exceed budget_allocated")
 
 
-def _determine_department_type(name: str) -> str:
-    normalized_name = (name or "").strip().lower()
-    if normalized_name == "admission":
-        return "ADMISSION"
-    if normalized_name == "finance":
-        return "FINANCE"
-    if normalized_name == "academics":
-        return "ACADEMICS"
-    return "GENERAL"
-
-
 async def create_department(
     name: str,
     admin_id: str,
@@ -42,7 +31,6 @@ async def create_department(
     return await db.department.create(
         data={
             "name": normalized_name,
-            "type": _determine_department_type(normalized_name),
             "adminId": admin_id,
             "budgetAllocated": float(budget_allocated),
             "budgetSpent": float(budget_spent),
@@ -79,7 +67,6 @@ async def update_department(
             if existing and existing.id != dept_id:
                 raise HTTPException(status_code=409, detail="Department with this name already exists")
             update_data["name"] = normalized_name
-            update_data["type"] = _determine_department_type(normalized_name)
 
     target_allocated = float(budget_allocated) if budget_allocated is not None else float(dept.budgetAllocated)
     target_spent = float(budget_spent) if budget_spent is not None else float(dept.budgetSpent)
