@@ -75,3 +75,15 @@ async def get_paystub(
     if current_user.role == "WORKER" and paystub.workerId != current_user.profile_id:
         raise HTTPException(status_code=403, detail="Access denied")
     return paystub
+
+
+@router.delete("/{paystub_id}", status_code=204)
+async def delete_paystub(
+    paystub_id: str,
+    current_user: Annotated[CurrentUser, Depends(require_role("SUPERVISOR", "ADMIN"))],
+):
+    """Supervisor/Admin deletes a GENERATED pay stub."""
+    paystub = await payroll_service.get_paystub(paystub_id)
+    if current_user.role == "SUPERVISOR":
+        await ensure_supervisor_owns_worker(current_user.profile_id, paystub.workerId)
+    await payroll_service.delete_paystub(paystub_id)

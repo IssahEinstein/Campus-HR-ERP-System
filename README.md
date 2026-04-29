@@ -46,8 +46,9 @@ The current platform is also being expanded toward a unified university ERP that
 
  Payroll (Mocked)
 
-• Hour tracking
-• Pay stub generation
+• Hour tracking across multiple shifts per pay period
+• Pay stub generation (blocks future pay periods)
+• Supervisor can delete generated (unpaid) stubs
 • Tax + deduction fields
 • PDF export endpoint (optional)
 

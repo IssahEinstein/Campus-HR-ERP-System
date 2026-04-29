@@ -140,10 +140,15 @@ export default function WorkerProfile() {
     GRADUATED: "Graduated",
   };
 
-  const totalHrs = attendance.reduce((sum, a) => {
-    if (!a.checkInTime || !a.checkOutTime) return sum;
+  const now = new Date();
+  const pastAttendance = attendance.filter(
+    (a) => a.checkedInAt && new Date(a.checkedInAt) <= now,
+  );
+  const totalHrs = pastAttendance.reduce((sum, a) => {
+    if (a.hoursWorked != null) return sum + Number(a.hoursWorked);
+    if (!a.checkedInAt || !a.checkedOutAt) return sum;
     return (
-      sum + (new Date(a.checkOutTime) - new Date(a.checkInTime)) / 3_600_000
+      sum + (new Date(a.checkedOutAt) - new Date(a.checkedInAt)) / 3_600_000
     );
   }, 0);
 
@@ -213,7 +218,7 @@ export default function WorkerProfile() {
           },
           {
             label: "Attendance Records",
-            value: attendance.length,
+            value: pastAttendance.length,
             color: "text-gray-800",
           },
           {
@@ -392,7 +397,7 @@ export default function WorkerProfile() {
           >
             <h2 className="text-lg font-semibold">Recent Attendance</h2>
           </div>
-          {attendance.length === 0 ? (
+          {pastAttendance.length === 0 ? (
             <div className="p-8 text-center text-gray-400 text-sm">
               No attendance records.
             </div>
@@ -401,7 +406,7 @@ export default function WorkerProfile() {
               className="divide-y"
               style={{ borderColor: "rgba(0,82,62,0.07)" }}
             >
-              {attendance.slice(0, 8).map((a) => (
+              {pastAttendance.slice(0, 8).map((a) => (
                 <div
                   key={a.id}
                   className="px-6 py-3 text-sm hover:bg-white/40 transition-colors"

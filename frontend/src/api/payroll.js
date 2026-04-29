@@ -14,3 +14,6 @@ export const generatePayStub = (body) =>
 
 export const updatePayStubStatus = (id, status) =>
   client.put(`/payroll/${id}/status`, { status }).then((r) => r.data);
+
+export const deletePayStub = (id) =>
+  client.delete(`/payroll/${id}`);

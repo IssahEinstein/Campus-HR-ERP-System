@@ -41,8 +41,7 @@ body {
 .app-shell-background {
   position: relative;
   min-height: 100vh;
-  /* No background — let the body image show through */
-  background: transparent;
+  background: url("/newbg.png") center center / cover no-repeat fixed;
 }
 
 .app-shell-background::before {

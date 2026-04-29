@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { DollarSign, FileText, PlusCircle, RefreshCw } from "lucide-react";
+import { DollarSign, FileText, PlusCircle, RefreshCw, Trash2 } from "lucide-react";
 import * as supervisorsApi from "../../api/supervisors";
 import * as payrollApi from "../../api/payroll";
 
@@ -119,6 +119,18 @@ export default function SupervisorPayroll() {
       setError(requestError.response?.data?.detail ?? "Failed to generate pay stub.");
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleDeleteStub = async (stubId) => {
+    setMessage("");
+    setError("");
+    try {
+      await payrollApi.deletePayStub(stubId);
+      setMessage("Pay stub deleted successfully.");
+      await load();
+    } catch (requestError) {
+      setError(requestError.response?.data?.detail ?? "Failed to delete pay stub.");
     }
   };
 
@@ -328,9 +340,20 @@ export default function SupervisorPayroll() {
                           {stub.payPeriodStart?.slice(0, 10)} to {stub.payPeriodEnd?.slice(0, 10)}
                         </p>
                       </div>
-                      <span className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-700">
-                        {stub.status}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-700">
+                          {stub.status}
+                        </span>
+                        {stub.status === "GENERATED" && (
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteStub(stub.id)}
+                            className="inline-flex items-center gap-1 border border-red-200 text-red-700 rounded-md px-2 py-1 text-xs hover:bg-red-50"
+                          >
+                            <Trash2 size={12} /> Delete
+                          </button>
+                        )}
+                      </div>
                     </div>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
                       <div>
