@@ -23,3 +23,7 @@ handler = RotatingFileHandler(
 
 handler.setFormatter(JsonFormatter())
 logger.addHandler(handler)
+
+stream_handler = logging.StreamHandler()
+stream_handler.setFormatter(JsonFormatter())
+logger.addHandler(stream_handler)

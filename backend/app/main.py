@@ -69,7 +69,14 @@ app.include_router(feedback_router,    prefix="/api", tags=["Feedback"])
 # ── DB lifecycle ───────────────────────────────────────────────────────────────
 @app.on_event("startup")
 async def startup():
-    logger.info("Starting up — connecting to database")
+    logger.info(
+        "Starting up — connecting to database; smtp_host=%s smtp_port=%s smtp_user=%s smtp_from=%s smtp_debug=%s",
+        settings.SMTP_HOST,
+        settings.SMTP_PORT,
+        settings.SMTP_USER,
+        settings.SMTP_FROM,
+        settings.SMTP_DEBUG,
+    )
     await connect_db()
     logger.info("Database connected")
 

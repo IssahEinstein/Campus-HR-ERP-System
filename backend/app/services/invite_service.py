@@ -29,19 +29,21 @@ async def _send_invite_email_background(*, to: str, name: str, role: str, invite
         await send_invite_email(to=to, name=name, role=role, invite_link=invite_link)
         logger.info("Invite email queued delivery accepted for to=%s role=%s", to, role)
     except EmailDeliveryError as exc:
-        logger.warning(
+        logger.error(
             "%s invite email failed for to=%s smtp_code=%s transient=%s reason=%s",
             role,
             exc.recipient,
             exc.smtp_code,
             exc.transient,
             exc.reason,
+            exc_info=True,
         )
     except Exception as exc:  # noqa: BLE001
         logger.exception("Failed to send %s invite email", role, exc_info=exc)
 
 
 def _queue_invite_email(*, to: str, name: str, role: str, invite_link: str) -> None:
+    logger.info("Scheduling invite email to=%s role=%s", to, role)
     asyncio.create_task(
         _send_invite_email_background(
             to=to,
