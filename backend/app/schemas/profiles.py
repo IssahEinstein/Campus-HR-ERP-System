@@ -73,7 +73,7 @@ class WorkerResponse(BaseModel):
     id: str
     worker_id: str
     student_id: str
-    worker_type: str
+    worker_type: Optional[str] = None
     user_id: str
     status: str
     department_id: str
