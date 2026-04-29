@@ -14,7 +14,8 @@ class Settings(BaseSettings):
     DATABASE_URL: str
     DIRECT_URL: str = ""
 
-    # Email (SMTP)
+    # Email service settings
+    RESEND_API_KEY: str = ""
     SMTP_HOST: str = "smtp.gmail.com"
     SMTP_PORT: int = 587
     SMTP_USER: str = ""

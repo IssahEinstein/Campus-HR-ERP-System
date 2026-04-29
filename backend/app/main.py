@@ -70,10 +70,8 @@ app.include_router(feedback_router,    prefix="/api", tags=["Feedback"])
 @app.on_event("startup")
 async def startup():
     logger.info(
-        "Starting up — connecting to database; smtp_host=%s smtp_port=%s smtp_user=%s smtp_from=%s smtp_debug=%s",
-        settings.SMTP_HOST,
-        settings.SMTP_PORT,
-        settings.SMTP_USER,
+        "Starting up — connecting to database; resend_api_key_set=%s smtp_from=%s smtp_debug=%s",
+        bool(settings.RESEND_API_KEY),
         settings.SMTP_FROM,
         settings.SMTP_DEBUG,
     )

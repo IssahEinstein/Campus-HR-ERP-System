@@ -255,10 +255,8 @@ JWT_REFRESH_TOKEN_EXPIRE_DAYS=7
 
 ALLOWED_ORIGINS=http://localhost:3000
 
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=your-email@gmail.com
-SMTP_PASSWORD=your-app-password
+RESEND_API_KEY=your-resend-api-key
+SMTP_FROM=noreply@campuserp.me
 
 APP_NAME=Campus Job ERP
 FRONTEND_URL=http://localhost:3000
@@ -381,10 +379,7 @@ You can deploy this backend as a Render Web Service either from `render.yaml` (B
 ### Optional variables
 
 - `ADMIN_BOOTSTRAP_KEY`
-- `SMTP_HOST`
-- `SMTP_PORT`
-- `SMTP_USER`
-- `SMTP_PASSWORD`
+- `RESEND_API_KEY`
 - `SMTP_FROM`
 - `SMTP_MAX_RETRIES` (default `0`)
 - `SMTP_RETRY_DELAY_SECONDS` (default `1.0`)
@@ -582,10 +577,8 @@ JWT_REFRESH_TOKEN_EXPIRE_DAYS=7
 
 ALLOWED_ORIGINS=http://localhost:3000
 
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=your-email@gmail.com
-SMTP_PASSWORD=your-app-password
+RESEND_API_KEY=your-resend-api-key
+SMTP_FROM=noreply@campuserp.me
 
 APP_NAME=Campus Job ERP
 FRONTEND_URL=http://localhost:3000
