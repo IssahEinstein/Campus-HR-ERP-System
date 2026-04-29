@@ -8,27 +8,16 @@ db = get_db()
 
 async def get_user_by_email(email: str) -> Optional[dict]:
     """Fetch a user record by email, including all profile relations in one query."""
-    normalized_email = email.strip().lower()
-    include = {
-        "adminProfile": True,
-        "supervisorProfile": True,
-        "workerProfile": True,
-        "adminInvite": True,
-        "supervisorInvite": True,
-    }
-
-    # Fallback guards against runtime incompatibilities in some deployments
-    # where string filter mode="insensitive" may error unexpectedly.
-    try:
-        return await db.user.find_first(
-            where={"email": {"equals": normalized_email, "mode": "insensitive"}},
-            include=include,
-        )
-    except Exception:
-        return await db.user.find_unique(
-            where={"email": normalized_email},
-            include=include,
-        )
+    return await db.user.find_unique(
+        where={"email": email},
+        include={
+            "adminProfile": True,
+            "supervisorProfile": True,
+            "workerProfile": True,
+            "adminInvite": True,
+            "supervisorInvite": True,
+        },
+    )
 
 
 async def get_user_with_profile(user_id: str) -> Optional[dict]:

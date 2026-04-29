@@ -59,9 +59,22 @@ async def refresh(
         from app.exceptions import InvalidToken
         raise InvalidToken()
 
-    # Keep refresh token stable to avoid multi-tab race conditions where two
-    # concurrent refresh calls can invalidate each other.
-    return await auth_service.refresh(refresh_token)
+    refresh_response = await auth_service.refresh(refresh_token)
+
+    # Rotate: issue a new refresh token for the same device
+    from app.auth.tokens import decode_refresh_token, create_refresh_token
+    from app.repositories.session import create_session
+    import hashlib
+    payload = decode_refresh_token(refresh_token)
+    new_refresh = create_refresh_token(subject=payload["sub"], device_id=payload["device_id"])
+    await create_session(
+        user_id=payload["sub"],
+        device_id=payload["device_id"],
+        refresh_token_hash=hashlib.sha256(new_refresh.encode()).hexdigest(),
+    )
+    response.set_cookie(value=new_refresh, **_COOKIE_OPTS)
+
+    return refresh_response
 
 
 @router.post("/logout", status_code=204)

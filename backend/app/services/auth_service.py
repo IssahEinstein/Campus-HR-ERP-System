@@ -97,7 +97,6 @@ async def login(email: str, password: str, device_id: str | None = None) -> tupl
     The refresh_token must be set as an HttpOnly cookie by the caller.
     device_id identifies the device/browser for per-device session management.
     """
-    email = email.strip()
     user = await get_user_by_email(email)
     if user is None:
         raise InvalidCredentials()
@@ -239,7 +238,6 @@ async def get_profile(current_user) -> dict:
         profile["worker_academic"] = {
             "student_id": wp.studentId,
             "worker_id": wp.workerId,
-            "worker_type": str(wp.workerType) if getattr(wp, 'workerType', None) else "WORKER",
             "gpa": wp.gpa,
             "enrollment_status": str(wp.enrollmentStatus) if wp.enrollmentStatus else None,
             "course_load_credits": wp.courseLoadCredits,

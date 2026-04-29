@@ -238,19 +238,8 @@ async def invite_worker(data: InviteWorkerRequest, supervisor_id: str) -> dict:
         raise HTTPException(status_code=409, detail="Student ID already registered")
 
     requested_role = str(data.role or "WORKER").upper()
-    requested_type = str(getattr(data, "worker_type", data.role) or "WORKER").upper()
-    allowed_worker_types = {"WORKER", "STUDENT", "TEACHER"}
-    if requested_type not in allowed_worker_types:
-        raise HTTPException(status_code=400, detail="Invalid worker_type. Use WORKER, STUDENT, or TEACHER")
-
-    # Supervisors in normal departments can only create standard worker accounts.
-    dept = await db.department.find_unique(where={"id": supervisor.departmentId})
-    special_departments = {"ADMISSION", "FINANCE", "ACADEMICS"}
-    if requested_type != "WORKER" and (not dept or str(dept.type) not in special_departments):
-        raise HTTPException(
-            status_code=403,
-            detail="Only Admission, Finance, or Academics departments can invite STUDENT or TEACHER accounts",
-        )
+    if requested_role != "WORKER":
+        raise HTTPException(status_code=403, detail="Supervisors can only create WORKER accounts")
 
     enrollment_status = None
     if data.enrollment_status is not None:
@@ -263,9 +252,6 @@ async def invite_worker(data: InviteWorkerRequest, supervisor_id: str) -> dict:
                     "Use one of: FULL_TIME, PART_TIME, ON_LEAVE, GRADUATED"
                 ),
             )
-
-    if requested_role != "WORKER":
-        raise HTTPException(status_code=403, detail="Supervisors can only create WORKER accounts")
 
     user = await db.user.create(data={
         "email": recipient_email,
@@ -280,7 +266,6 @@ async def invite_worker(data: InviteWorkerRequest, supervisor_id: str) -> dict:
         "workerId": data.worker_id,
         "studentId": data.student_id,
         "departmentId": supervisor.departmentId,
-        "workerType": requested_type,
         "status": "INVITED",
         "gpa": data.gpa,
         "enrollmentStatus": enrollment_status,
