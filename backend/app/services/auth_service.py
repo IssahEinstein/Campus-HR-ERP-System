@@ -238,6 +238,7 @@ async def get_profile(current_user) -> dict:
         profile["worker_academic"] = {
             "student_id": wp.studentId,
             "worker_id": wp.workerId,
+            "worker_type": str(wp.workerType) if getattr(wp, 'workerType', None) else "WORKER",
             "gpa": wp.gpa,
             "enrollment_status": str(wp.enrollmentStatus) if wp.enrollmentStatus else None,
             "course_load_credits": wp.courseLoadCredits,

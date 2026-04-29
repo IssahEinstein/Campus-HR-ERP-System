@@ -39,6 +39,7 @@ class DepartmentResponse(BaseModel):
 
     id: str
     name: str
+    type: Optional[str] = "GENERAL"
     admin_id: Optional[str] = None
     budget_allocated: float = 0
     budget_spent: float = 0
@@ -72,6 +73,7 @@ class WorkerResponse(BaseModel):
     id: str
     worker_id: str
     student_id: str
+    worker_type: str
     user_id: str
     status: str
     department_id: str

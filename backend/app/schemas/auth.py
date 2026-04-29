@@ -28,6 +28,7 @@ class CurrentUser(BaseModel):
 class WorkerAcademicResponse(BaseModel):
     student_id: Optional[str] = None
     worker_id: Optional[str] = None
+    worker_type: Optional[str] = None
     gpa: Optional[float] = None
     enrollment_status: Optional[str] = None
     course_load_credits: Optional[int] = None

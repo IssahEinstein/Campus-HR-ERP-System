@@ -31,6 +31,7 @@ class InviteWorkerRequest(BaseModel):
     worker_id: str       # Human-readable 800 number
     student_id: str
     role: str = "WORKER"
+    worker_type: str = "WORKER"
     gpa: float | None = Field(default=None, ge=0, le=4)
     enrollment_status: str | None = None
     course_load_credits: int | None = Field(default=None, ge=0)
