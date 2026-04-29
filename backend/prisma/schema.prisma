@@ -189,6 +189,8 @@ model Department {
 
   supervisors Supervisor[]
   workers     Worker[]
+  payments    Payment[]
+  courses     Course[]
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -294,6 +296,7 @@ model Worker {
   coursesTaught    Course[] @relation("TeacherCourses")
   feedbackReceived Feedback[] @relation("WorkerFeedback")
   invites          WorkerInvite[]
+  graduationRequests GraduationRequest[]
 
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -566,7 +569,7 @@ model CourseEnrollment {
 
 model Grade {
   id                 String           @id @default(cuid())
-  courseEnrollmentId String
+  courseEnrollmentId String           @unique
   courseEnrollment   CourseEnrollment @relation(fields: [courseEnrollmentId], references: [id], onDelete: Cascade)
   gradeValue         Float
   letterGrade        String?          
