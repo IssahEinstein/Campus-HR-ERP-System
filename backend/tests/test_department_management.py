@@ -7,11 +7,15 @@ async def test_rename_department_success(client: httpx.AsyncClient, admin_token:
     existing = MagicMock()
     existing.id = "dept-1"
     existing.name = "Computer Science"
+    existing.type = "GENERAL"
 
     updated = MagicMock()
     updated.id = "dept-1"
     updated.name = "Computer Engineering"
+    updated.type = "GENERAL"
     updated.adminId = "admin-profile-id"
+    updated.budgetAllocated = 0
+    updated.budgetSpent = 0
     updated.createdAt = "2026-01-01T00:00:00Z"
 
     with patch("app.services.department_service.db") as mock_db:
@@ -32,6 +36,7 @@ async def test_rename_department_conflict(client: httpx.AsyncClient, admin_token
     current = MagicMock()
     current.id = "dept-1"
     current.name = "Computer Science"
+    current.type = "GENERAL"
 
     existing = MagicMock()
     existing.id = "dept-2"
