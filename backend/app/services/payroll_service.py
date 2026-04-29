@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from fastapi import HTTPException
 
 from app.db import get_db
@@ -17,7 +18,16 @@ async def generate_paystub(data: PayrollGenerate, supervisor_id: str):
     if not worker:
         raise HTTPException(status_code=404, detail="Worker not found")
 
-    # Block duplicate pay stub for the same worker + period
+    now_utc = datetime.now(timezone.utc)
+    pay_period_end = _as_utc(data.pay_period_end)
+    if pay_period_end > now_utc:
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot generate a pay stub for a future pay period",
+        )
+
+    # If a GENERATED pay stub already exists for this worker + period,
+    # refresh its totals so additional completed shifts are included.
     existing = await db.paystub.find_first(
         where={
             "workerId": data.worker_id,
@@ -25,10 +35,10 @@ async def generate_paystub(data: PayrollGenerate, supervisor_id: str):
             "payPeriodEnd": data.pay_period_end,
         }
     )
-    if existing:
+    if existing and existing.status != "GENERATED":
         raise HTTPException(
             status_code=409,
-            detail="A pay stub already exists for this worker and pay period"
+            detail="A pay stub already exists for this worker and pay period",
         )
 
     # Sum all completed attendance records within the pay period
@@ -48,21 +58,38 @@ async def generate_paystub(data: PayrollGenerate, supervisor_id: str):
     tax_withheld = round(gross_pay * data.tax_rate, 2)
     net_pay = round(gross_pay - tax_withheld - data.deductions, 2)
 
-    paystub = await db.paystub.create(
-        data={
-            "workerId": data.worker_id,
-            "payPeriodStart": data.pay_period_start,
-            "payPeriodEnd": data.pay_period_end,
-            "totalHours": round(total_hours, 2),
-            "hourlyRate": data.hourly_rate,
-            "grossPay": gross_pay,
-            "taxWithheld": tax_withheld,
-            "deductions": data.deductions,
-            "netPay": net_pay,
-            "notes": data.notes,
-        }
-    )
-    return paystub
+    payload = {
+        "workerId": data.worker_id,
+        "payPeriodStart": data.pay_period_start,
+        "payPeriodEnd": data.pay_period_end,
+        "totalHours": round(total_hours, 2),
+        "hourlyRate": data.hourly_rate,
+        "grossPay": gross_pay,
+        "taxWithheld": tax_withheld,
+        "deductions": data.deductions,
+        "netPay": net_pay,
+        "notes": data.notes,
+    }
+
+    if existing:
+        return await db.paystub.update(where={"id": existing.id}, data=payload)
+
+    return await db.paystub.create(data=payload)
+
+
+async def delete_paystub(paystub_id: str):
+    """Delete a pay stub while still in GENERATED state."""
+    paystub = await db.paystub.find_unique(where={"id": paystub_id})
+    if not paystub:
+        raise HTTPException(status_code=404, detail="Pay stub not found")
+    if paystub.status != "GENERATED":
+        raise HTTPException(
+            status_code=400,
+            detail="Only GENERATED pay stubs can be deleted",
+        )
+
+    await db.paystub.delete(where={"id": paystub_id})
+    return {"message": "Pay stub deleted successfully"}
 
 
 async def update_status(paystub_id: str, data: PayStubStatusUpdate, supervisor_id: str):
@@ -115,3 +142,9 @@ async def list_all_paystubs(status: str = None):
         where=where,
         order={"createdAt": "desc"},
     )
+
+
+def _as_utc(value: datetime) -> datetime:
+    if value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value.astimezone(timezone.utc)

@@ -6,17 +6,10 @@ import * as timeoffApi from "../../api/timeoff";
 import * as supervisorsApi from "../../api/supervisors";
 
 export default function CreateShiftModal({ workers, onClose, onCreated }) {
-  // Build an ISO datetime string that preserves the browser's local timezone offset
-  // so the backend can extract the correct local HH:MM for availability comparison.
-  const toLocalISO = (dateStr, timeStr) => {
-    const dt = new Date(`${dateStr}T${timeStr}`);
-    const offsetMin = dt.getTimezoneOffset(); // minutes BEHIND UTC (positive = behind UTC)
-    const sign = offsetMin <= 0 ? "+" : "-";
-    const absMin = Math.abs(offsetMin);
-    const hh = String(Math.floor(absMin / 60)).padStart(2, "0");
-    const mm = String(absMin % 60).padStart(2, "0");
+  // Keep shift datetimes in local wall-clock form to match availability windows.
+  const toLocalDateTime = (dateStr, timeStr) => {
     const fullTime = timeStr.length === 5 ? `${timeStr}:00` : timeStr;
-    return `${dateStr}T${fullTime}${sign}${hh}:${mm}`;
+    return `${dateStr}T${fullTime}`;
   };
   const [loading, setLoading] = useState(false);
   const [error, setError]   = useState(null);
@@ -272,11 +265,11 @@ export default function CreateShiftModal({ workers, onClose, onCreated }) {
       location: normalizedLocation,
       description: fd.get("description") || undefined,
       worker_id: selectedWorkerId,
-      start_time: toLocalISO(fd.get("date"), fd.get("startTime")),
-      end_time:   toLocalISO(fd.get("date"), fd.get("endTime")),
+      start_time: toLocalDateTime(fd.get("date"), fd.get("startTime")),
+      end_time:   toLocalDateTime(fd.get("date"), fd.get("endTime")),
       repeat_weekly: repeatWeekly,
       repeat_end_date: repeatWeekly && repeatEndDate
-        ? toLocalISO(repeatEndDate, "23:59:59")
+        ? toLocalDateTime(repeatEndDate, "23:59:59")
         : undefined,
     };
 
