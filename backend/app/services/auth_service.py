@@ -97,6 +97,7 @@ async def login(email: str, password: str, device_id: str | None = None) -> tupl
     The refresh_token must be set as an HttpOnly cookie by the caller.
     device_id identifies the device/browser for per-device session management.
     """
+    email = email.strip()
     user = await get_user_by_email(email)
     if user is None:
         raise InvalidCredentials()
